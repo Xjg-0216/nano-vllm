@@ -101,29 +101,95 @@ outputs[0]["text"]
 
 ## 核心架构
 
-### 1. LLMEngine (`engine/llm_engine.py`)
-- 主引擎类，管理模型执行和序列调度
-- 支持多进程张量并行 (通过 `ModelRunner`)
-- 提供 `generate()` 方法用于批量推理
+### Engine 模块依赖关系
 
-### 2. ModelRunner (`engine/model_runner.py`)
-- 模型执行器，每个 GPU 一个实例
-- 负责模型加载、KV Cache 分配、CUDA 图捕获
-- 通过共享内存进行进程间通信
+```mermaid
+graph TD
+    subgraph 第一层：基础数据结构
+        Sequence["sequence.py<br/>238 行<br/>序列数据类"]
+    end
+    
+    subgraph 第二层：资源管理
+        BlockManager["block_manager.py<br/>347 行<br/>KV Cache 内存管理"]
+    end
+    
+    subgraph 第三层：调度策略
+        Scheduler["scheduler.py<br/>71 行<br/>序列调度器"]
+    end
+    
+    subgraph 第四层：模型执行
+        ModelRunner["model_runner.py<br/>251 行<br/>模型加载与执行"]
+    end
+    
+    subgraph 第五层：引擎总控
+        LLMEngine["llm_engine.py<br/>93 行<br/>统一引擎接口"]
+    end
+    
+    Sequence --> BlockManager
+    BlockManager --> Scheduler
+    Sequence --> Scheduler
+    Scheduler --> LLMEngine
+    ModelRunner --> LLMEngine
+```
 
-### 3. Scheduler (`engine/scheduler.py`)
-- 序列调度器，管理 prefill 和 decode 阶段
-- 实现抢占式调度 (preemption)
-- 与 BlockManager 协作管理 KV Cache
+### 模块说明
 
-### 4. BlockManager (`engine/block_manager.py`)
-- KV Cache 块管理器
-- 支持前缀缓存 (prefix caching) 通过哈希去重
-- 块引用计数管理内存
+| 顺序 | 模块 | 文件 | 行数 | 职责 |
+|------|------|------|------|------|
+| 1 | **Sequence** | `sequence.py` | 238 | 推理的基本单位，管理 token IDs、状态、KV Cache 块表 |
+| 2 | **BlockManager** | `block_manager.py` | 347 | KV Cache 内存管理，支持前缀缓存和引用计数 |
+| 3 | **Scheduler** | `scheduler.py` | 71 | 序列调度器，管理 prefill/decode 阶段，处理抢占 |
+| 4 | **ModelRunner** | `model_runner.py` | 251 | 模型加载与执行，支持多进程张量并行 |
+| 5 | **LLMEngine** | `llm_engine.py` | 93 | 统一引擎接口，整合调度和执行 |
 
-### 5. Sequence (`engine/sequence.py`)
-- 序列表示类
-- 管理 token IDs、状态、块表
+### 各模块详解
+
+#### 1. Sequence (`engine/sequence.py`)
+- **职责**: 推理的基本单位，表示一个序列
+- **核心属性**:
+  - `block_table`: KV Cache 物理块 ID 列表
+  - `status`: 调度状态 (WAITING → RUNNING → FINISHED)
+  - `token_ids`: 序列的所有 token
+  - `num_cached_tokens`: 已缓存的 token 数 (前缀缓存优化)
+
+#### 2. BlockManager (`engine/block_manager.py`)
+- **职责**: 管理 GPU 上的 KV Cache 内存块
+- **核心功能**:
+  - 块的分配与回收 (基于引用计数)
+  - 前缀缓存 (Prefix Caching): 通过哈希去重复用相同前缀
+  - 动态扩展：序列增长时追加新块
+- **关键数据结构**:
+  - `hash_to_block_id`: 哈希表，用于前缀缓存查找
+  - `free_block_ids`: 空闲块队列 (FIFO)
+  - `used_block_ids`: 已使用块集合
+
+#### 3. Scheduler (`engine/scheduler.py`)
+- **职责**: 决定哪个序列何时执行
+- **调度流程**:
+  1. **Prefill 阶段**: 从 `waiting` 队列选择序列，分配资源并执行
+  2. **Decode 阶段**: 从 `running` 队列继续生成 token
+  3. **抢占处理**: 资源不足时将序列从 `running` 移回 `waiting`
+- **协作关系**: 依赖 `BlockManager` 进行内存分配
+
+#### 4. ModelRunner (`engine/model_runner.py`)
+- **职责**: 模型加载与执行
+- **核心功能**:
+  - 加载 HuggingFace 模型权重
+  - 初始化 KV Cache 张量
+  - 执行模型前向传播
+  - 支持多进程张量并行 (NCCL 通信)
+
+#### 5. LLMEngine (`engine/llm_engine.py`)
+- **职责**: 统一引擎接口，推理主循环
+- **工作流程**:
+  ```
+  1. 添加用户请求到 Scheduler.waiting
+  2. 循环执行直到所有序列完成:
+     a. Scheduler.schedule() 获取待执行序列
+     b. ModelRunner.execute_model() 执行前向传播
+     c. 更新序列状态和 token
+  3. 返回生成结果
+  ```
 
 ## 开发约定
 
