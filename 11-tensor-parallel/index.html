@@ -8,9 +8,11 @@
 <meta content="Nano-vLLM 是一个轻量级的 vLLM 实现，从头开始构建，用于离线大语言模型推理" name="description"/>
 <meta content="jg Xu" name="author"/>
 <link href="https://xjg-0216.github.io/nano-vllm/11-tensor-parallel/" rel="canonical"/>
+<link href="../08-model_attention/" rel="prev"/>
+<link href="../10-embed-head/" rel="next"/>
 <link href="../assets/logo.png" rel="icon"/>
 <meta content="mkdocs-1.6.1, mkdocs-material-9.7.6" name="generator"/>
-<title>张量并行基础：tp_rank 和 tp_size - Nano-vLLM 文档</title>
+<title>张量并行基础 - Nano-vLLM 文档</title>
 <link href="../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
 <link href="../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
@@ -48,7 +50,7 @@
 <div class="md-header__topic" data-md-component="header-topic">
 <span class="md-ellipsis">
             
-              张量并行基础：tp_rank 和 tp_size
+              张量并行基础
             
           </span>
 </div>
@@ -157,8 +159,8 @@
 
         </a>
 </li>
-<li class="md-tabs__item">
-<a class="md-tabs__link" href="../10-tensor-parallel.md">
+<li class="md-tabs__item md-tabs__item--active">
+<a class="md-tabs__link" href="./">
           
   
   
@@ -405,9 +407,9 @@
 </ul>
 </nav>
 </li>
-<li class="md-nav__item md-nav__item--nested">
-<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_5" type="checkbox"/>
-<label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_5" type="checkbox"/>
+<label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
 <span class="md-ellipsis">
     
   
@@ -418,7 +420,7 @@
   </span>
 <span class="md-nav__icon md-icon"></span>
 </label>
-<nav aria-expanded="false" aria-labelledby="__nav_5_label" class="md-nav" data-md-level="1">
+<nav aria-expanded="true" aria-labelledby="__nav_5_label" class="md-nav" data-md-level="1">
 <label class="md-nav__title" for="__nav_5">
 <span class="md-nav__icon md-icon"></span>
             
@@ -428,8 +430,20 @@
 
           </label>
 <ul class="md-nav__list" data-md-scrollfix="">
-<li class="md-nav__item">
-<a class="md-nav__link" href="../10-tensor-parallel.md">
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    
+  
+    张量并行基础
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
 <span class="md-ellipsis">
     
   
@@ -439,9 +453,355 @@
     
   </span>
 </a>
+<nav aria-label="目录" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_1">
+<span class="md-ellipsis">
+      
+        一、核心概念
+      
+    </span>
+</a>
+<nav aria-label="一、核心概念" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#11">
+<span class="md-ellipsis">
+      
+        1.1 什么是张量并行
+      
+    </span>
+</a>
 </li>
 <li class="md-nav__item">
-<a class="md-nav__link" href="../11-embed-head.md">
+<a class="md-nav__link" href="#12-tp_rank-tp_size">
+<span class="md-ellipsis">
+      
+        1.2 tp_rank 和 tp_size 定义
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_2">
+<span class="md-ellipsis">
+      
+        代码定义
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#tp_rank-tp_size_1">
+<span class="md-ellipsis">
+      
+        二、tp_rank 和 tp_size 的关系
+      
+    </span>
+</a>
+<nav aria-label="二、tp_rank 和 tp_size 的关系" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#21">
+<span class="md-ellipsis">
+      
+        2.1 示例场景
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#22">
+<span class="md-ellipsis">
+      
+        2.2 词汇表切分计算
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#23">
+<span class="md-ellipsis">
+      
+        2.3 通用公式
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#vocabparallelembedding">
+<span class="md-ellipsis">
+      
+        三、在 VocabParallelEmbedding 中的应用
+      
+    </span>
+</a>
+<nav aria-label="三、在 VocabParallelEmbedding 中的应用" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#31">
+<span class="md-ellipsis">
+      
+        3.1 权重存储
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#32">
+<span class="md-ellipsis">
+      
+        3.2 权重加载
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#33">
+<span class="md-ellipsis">
+      
+        3.3 前向传播
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#34">
+<span class="md-ellipsis">
+      
+        3.4 前向传播示例
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#parallellmhead">
+<span class="md-ellipsis">
+      
+        四、在 ParallelLMHead 中的应用
+      
+    </span>
+</a>
+<nav aria-label="四、在 ParallelLMHead 中的应用" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#41">
+<span class="md-ellipsis">
+      
+        4.1 结构
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#42">
+<span class="md-ellipsis">
+      
+        4.2 计算流程
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#43-gather">
+<span class="md-ellipsis">
+      
+        4.3 Gather 操作
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_3">
+<span class="md-ellipsis">
+      
+        五、通信原语对比
+      
+    </span>
+</a>
+<nav aria-label="五、通信原语对比" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#51-allreduce-vocabparallelembedding">
+<span class="md-ellipsis">
+      
+        5.1 AllReduce (VocabParallelEmbedding)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#52-gather-parallellmhead">
+<span class="md-ellipsis">
+      
+        5.2 Gather (ParallelLMHead)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#53">
+<span class="md-ellipsis">
+      
+        5.3 为什么使用不同的通信方式？
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#tp_size">
+<span class="md-ellipsis">
+      
+        六、不同 tp_size 的配置
+      
+    </span>
+</a>
+<nav aria-label="六、不同 tp_size 的配置" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#61-tp_size-1-gpu">
+<span class="md-ellipsis">
+      
+        6.1 tp_size = 1 (单 GPU)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#62-tp_size-2-gpu">
+<span class="md-ellipsis">
+      
+        6.2 tp_size = 2 (双 GPU)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#63-tp_size-8-gpu">
+<span class="md-ellipsis">
+      
+        6.3 tp_size = 8 (八 GPU)
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_4">
+<span class="md-ellipsis">
+      
+        七、内存优化分析
+      
+    </span>
+</a>
+<nav aria-label="七、内存优化分析" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#71">
+<span class="md-ellipsis">
+      
+        7.1 嵌入层内存对比
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#72">
+<span class="md-ellipsis">
+      
+        7.2 优势
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_5">
+<span class="md-ellipsis">
+      
+        八、完整数据流图
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_6">
+<span class="md-ellipsis">
+      
+        九、总结
+      
+    </span>
+</a>
+<nav aria-label="九、总结" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#91">
+<span class="md-ellipsis">
+      
+        9.1 核心公式
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#92-tp_rank-tp_size">
+<span class="md-ellipsis">
+      
+        9.2 tp_rank 和 tp_size 对比表
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#93">
+<span class="md-ellipsis">
+      
+        9.3 关键设计点
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#94">
+<span class="md-ellipsis">
+      
+        9.4 扩展到其他层
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../10-embed-head/">
 <span class="md-ellipsis">
     
   
