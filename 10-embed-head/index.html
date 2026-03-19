@@ -1,0 +1,2003 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="zh">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="Nano-vLLM 是一个轻量级的 vLLM 实现，从头开始构建，用于离线大语言模型推理" name="description"/>
+<meta content="jg Xu" name="author"/>
+<link href="https://xjg-0216.github.io/nano-vllm/10-embed-head/" rel="canonical"/>
+<link href="../assets/logo.png" rel="icon"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.6" name="generator"/>
+<title>嵌入层与输出头详解 - Nano-vLLM 文档</title>
+<link href="../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
+<link href="../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<link href="../css/timeago.css" rel="stylesheet"/>
+<script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+</head>
+<body data-md-color-accent="indigo" data-md-color-primary="indigo" data-md-color-scheme="default" dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#_1">
+          跳转至
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+<nav aria-label="页眉" class="md-header__inner md-grid">
+<a aria-label="Nano-vLLM 文档" class="md-header__button md-logo" data-md-component="logo" href=".." title="Nano-vLLM 文档">
+<img alt="logo" src="../assets/logo.png"/>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            Nano-vLLM 文档
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              嵌入层与输出头详解
+            
+          </span>
+</div>
+</div>
+</div>
+<form class="md-header__option" data-md-component="palette">
+<input aria-label="切换到深色模式" class="md-option" data-md-color-accent="indigo" data-md-color-media="(prefers-color-scheme: light)" data-md-color-primary="indigo" data-md-color-scheme="default" id="__palette_0" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_1" hidden="" title="切换到深色模式">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+<input aria-label="切换到浅色模式" class="md-option" data-md-color-accent="indigo" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-primary="indigo" data-md-color-scheme="slate" id="__palette_1" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_0" hidden="" title="切换到浅色模式">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+</form>
+<script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="搜索" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="搜索" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</label>
+<nav aria-label="查找" class="md-search__options">
+<a aria-label="分享" class="md-search__icon md-icon" data-clipboard="" data-clipboard-text="" data-md-component="search-share" href="javascript:void(0)" tabindex="-1" title="分享">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"></path></svg>
+</a>
+<button aria-label="清空当前内容" class="md-search__icon md-icon" tabindex="-1" title="清空当前内容" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+<div class="md-search__suggest" data-md-component="search-suggest"></div>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/Xjg-0216/nano-vllm" title="前往仓库">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    Xjg-0216/nano-vllm
+  </div>
+</a>
+</div>
+</nav>
+<nav aria-label="标签" class="md-tabs" data-md-component="tabs">
+<div class="md-grid">
+<ul class="md-tabs__list">
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="..">
+        
+  
+  
+    
+  
+  首页
+
+      </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../01-intro/">
+          
+  
+  
+    
+  
+  入门指南
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../04-sequence-design/">
+          
+  
+  
+    
+  
+  Engine 模块
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../09-model-qwen3/">
+          
+  
+  
+    
+  
+  模型架构
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../10-tensor-parallel.md">
+          
+  
+  
+    
+  
+  核心组件
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../vllm-innovations/">
+        
+  
+  
+    
+  
+  vLLM 创新
+
+      </a>
+</li>
+</ul>
+</div>
+</nav>
+</header>
+<div class="md-container" data-md-component="container">
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="导航栏" class="md-nav md-nav--primary md-nav--lifted" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="Nano-vLLM 文档" class="md-nav__button md-logo" data-md-component="logo" href=".." title="Nano-vLLM 文档">
+<img alt="logo" src="../assets/logo.png"/>
+</a>
+    Nano-vLLM 文档
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/Xjg-0216/nano-vllm" title="前往仓库">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    Xjg-0216/nano-vllm
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="..">
+<span class="md-ellipsis">
+    
+  
+    首页
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    入门指南
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    入门指南
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../01-intro/">
+<span class="md-ellipsis">
+    
+  
+    项目介绍
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../02-architecture/">
+<span class="md-ellipsis">
+    
+  
+    架构概览
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../03-engine-learning-order/">
+<span class="md-ellipsis">
+    
+  
+    学习顺序
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_3" type="checkbox"/>
+<label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    Engine 模块
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_3_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_3">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Engine 模块
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../04-sequence-design/">
+<span class="md-ellipsis">
+    
+  
+    Sequence 设计
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../05-block-manager-design/">
+<span class="md-ellipsis">
+    
+  
+    BlockManager 设计
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../06-block-manager-flow/">
+<span class="md-ellipsis">
+    
+  
+    BlockManager 流程
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../07-scheduler-flow/">
+<span class="md-ellipsis">
+    
+  
+    Scheduler 流程
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_4" type="checkbox"/>
+<label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    模型架构
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_4_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_4">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    模型架构
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../09-model-qwen3/">
+<span class="md-ellipsis">
+    
+  
+    Qwen3 模型
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../08-model_attention/">
+<span class="md-ellipsis">
+    
+  
+    模型注意力
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_5" type="checkbox"/>
+<label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    核心组件
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_5_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_5">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    核心组件
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../10-tensor-parallel.md">
+<span class="md-ellipsis">
+    
+  
+    张量并行基础
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../11-embed-head.md">
+<span class="md-ellipsis">
+    
+  
+    嵌入层与输出头
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../15-sampler/">
+<span class="md-ellipsis">
+    
+  
+    采样器
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../16-attention/">
+<span class="md-ellipsis">
+    
+  
+    注意力机制
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../12-linear/">
+<span class="md-ellipsis">
+    
+  
+    并行线性层
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../13-parallel-decision/">
+<span class="md-ellipsis">
+    
+  
+    并行决策
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../14-rope-and-lru-cache/">
+<span class="md-ellipsis">
+    
+  
+    RoPE 与 LRU 缓存
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../vllm-innovations/">
+<span class="md-ellipsis">
+    
+  
+    vLLM 创新
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="目录" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_2">
+<span class="md-ellipsis">
+      
+        一、模块概述
+      
+    </span>
+</a>
+<nav aria-label="一、模块概述" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#11">
+<span class="md-ellipsis">
+      
+        1.1 核心组件
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#12">
+<span class="md-ellipsis">
+      
+        1.2 张量并行策略
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#13">
+<span class="md-ellipsis">
+      
+        1.3 模块依赖关系
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#vocabparallelembedding">
+<span class="md-ellipsis">
+      
+        二、VocabParallelEmbedding 详解
+      
+    </span>
+</a>
+<nav aria-label="二、VocabParallelEmbedding 详解" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#21">
+<span class="md-ellipsis">
+      
+        2.1 类结构
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#22">
+<span class="md-ellipsis">
+      
+        2.2 初始化流程
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#23">
+<span class="md-ellipsis">
+      
+        2.3 权重加载器
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#24">
+<span class="md-ellipsis">
+      
+        2.4 前向传播详解
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#25">
+<span class="md-ellipsis">
+      
+        2.5 前向传播示例
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#26">
+<span class="md-ellipsis">
+      
+        2.6 掩码机制详解
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#parallellmhead">
+<span class="md-ellipsis">
+      
+        三、ParallelLMHead 详解
+      
+    </span>
+</a>
+<nav aria-label="三、ParallelLMHead 详解" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#31">
+<span class="md-ellipsis">
+      
+        3.1 类结构
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#32">
+<span class="md-ellipsis">
+      
+        3.2 初始化
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#33">
+<span class="md-ellipsis">
+      
+        3.3 前向传播详解
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#34-prefill">
+<span class="md-ellipsis">
+      
+        3.4 Prefill 模式处理
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#35-token-logits">
+<span class="md-ellipsis">
+      
+        3.5 为什么只提取最后一个 token 的 logits？
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#36-gather">
+<span class="md-ellipsis">
+      
+        3.6 Gather 操作详解
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_6">
+<span class="md-ellipsis">
+      
+        四、通信原语对比
+      
+    </span>
+</a>
+<nav aria-label="四、通信原语对比" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#41-allreduce-vocabparallelembedding">
+<span class="md-ellipsis">
+      
+        4.1 AllReduce (VocabParallelEmbedding)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#42-gather-parallellmhead">
+<span class="md-ellipsis">
+      
+        4.2 Gather (ParallelLMHead)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#43">
+<span class="md-ellipsis">
+      
+        4.3 为什么使用不同的通信方式？
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_7">
+<span class="md-ellipsis">
+      
+        五、完整数据流图
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_8">
+<span class="md-ellipsis">
+      
+        六、继承关系
+      
+    </span>
+</a>
+<nav aria-label="六、继承关系" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#61">
+<span class="md-ellipsis">
+      
+        6.1 类继承图
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#62">
+<span class="md-ellipsis">
+      
+        6.2 属性继承
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_9">
+<span class="md-ellipsis">
+      
+        七、使用示例
+      
+    </span>
+</a>
+<nav aria-label="七、使用示例" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#71">
+<span class="md-ellipsis">
+      
+        7.1 基本使用
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#72-qwen3">
+<span class="md-ellipsis">
+      
+        7.2 在 Qwen3 模型中的使用
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_10">
+<span class="md-ellipsis">
+      
+        八、性能优化
+      
+    </span>
+</a>
+<nav aria-label="八、性能优化" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#81">
+<span class="md-ellipsis">
+      
+        8.1 内存优化
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#82">
+<span class="md-ellipsis">
+      
+        8.2 通信开销
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#83">
+<span class="md-ellipsis">
+      
+        8.3 优化建议
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_11">
+<span class="md-ellipsis">
+      
+        九、总结
+      
+    </span>
+</a>
+<nav aria-label="九、总结" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#91">
+<span class="md-ellipsis">
+      
+        9.1 核心设计
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#92">
+<span class="md-ellipsis">
+      
+        9.2 关键公式
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#93">
+<span class="md-ellipsis">
+      
+        9.3 与其他模块的关系
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<h1 id="_1">嵌入层与输出头详解<a class="headerlink" href="#_1" title="Permanent link">¶</a></h1>
+<h2 id="_2">一、模块概述<a class="headerlink" href="#_2" title="Permanent link">¶</a></h2>
+<p><code>nanovllm/layers/embed_head.py</code> 实现了词汇表并行的嵌入层和语言模型输出头，是 Nano-vLLM 支持张量并行的关键组件。</p>
+<h3 id="11">1.1 核心组件<a class="headerlink" href="#11" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>功能</th>
+<th>输入</th>
+<th>输出</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>VocabParallelEmbedding</strong></td>
+<td>词嵌入查找</td>
+<td><code>[batch, seq_len]</code> token IDs</td>
+<td><code>[batch, seq_len, hidden_size]</code> 嵌入向量</td>
+</tr>
+<tr>
+<td><strong>ParallelLMHead</strong></td>
+<td>词汇表 logits 计算</td>
+<td><code>[total_tokens, hidden_size]</code> 隐藏状态</td>
+<td><code>[num_seqs, vocab_size]</code> logits</td>
+</tr>
+</tbody>
+</table>
+<h3 id="12">1.2 张量并行策略<a class="headerlink" href="#12" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a href="#__codelineno-0-1" id="__codelineno-0-1" name="__codelineno-0-1"></a>词汇表并行 (Vocabulary Parallelism):
+</span><span id="__span-0-2"><a href="#__codelineno-0-2" id="__codelineno-0-2" name="__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a href="#__codelineno-0-3" id="__codelineno-0-3" name="__codelineno-0-3"></a>完整词汇表 (vocab_size=32000):
+</span><span id="__span-0-4"><a href="#__codelineno-0-4" id="__codelineno-0-4" name="__codelineno-0-4"></a>┌─────────────────────────────────────────────────────────┐
+</span><span id="__span-0-5"><a href="#__codelineno-0-5" id="__codelineno-0-5" name="__codelineno-0-5"></a>│ token:    0 │  1000 │  8000 │  16000 │  24000 │  31999 │
+</span><span id="__span-0-6"><a href="#__codelineno-0-6" id="__codelineno-0-6" name="__codelineno-0-6"></a>├───────────┼───────┼───────┼────────┼────────┼─────────┤
+</span><span id="__span-0-7"><a href="#__codelineno-0-7" id="__codelineno-0-7" name="__codelineno-0-7"></a>│ GPU 0     │ GPU 0 │ GPU 1│ GPU 2  │ GPU 3  │ GPU 3   │
+</span><span id="__span-0-8"><a href="#__codelineno-0-8" id="__codelineno-0-8" name="__codelineno-0-8"></a>│ [0:8000)  │       │[8k:16k)│[16k:24k)│[24k:32k)│         │
+</span><span id="__span-0-9"><a href="#__codelineno-0-9" id="__codelineno-0-9" name="__codelineno-0-9"></a>└─────────────────────────────────────────────────────────┘
+</span><span id="__span-0-10"><a href="#__codelineno-0-10" id="__codelineno-0-10" name="__codelineno-0-10"></a>
+</span><span id="__span-0-11"><a href="#__codelineno-0-11" id="__codelineno-0-11" name="__codelineno-0-11"></a>每个 GPU 只存储部分词汇的嵌入权重:
+</span><span id="__span-0-12"><a href="#__codelineno-0-12" id="__codelineno-0-12" name="__codelineno-0-12"></a>- GPU 0: weight[0:8000, :]
+</span><span id="__span-0-13"><a href="#__codelineno-0-13" id="__codelineno-0-13" name="__codelineno-0-13"></a>- GPU 1: weight[8000:16000, :]
+</span><span id="__span-0-14"><a href="#__codelineno-0-14" id="__codelineno-0-14" name="__codelineno-0-14"></a>- GPU 2: weight[16000:24000, :]
+</span><span id="__span-0-15"><a href="#__codelineno-0-15" id="__codelineno-0-15" name="__codelineno-0-15"></a>- GPU 3: weight[24000:32000, :]
+</span></code></pre></div>
+<h3 id="13">1.3 模块依赖关系<a class="headerlink" href="#13" title="Permanent link">¶</a></h3>
+<pre class="mermaid"><code>flowchart TB
+    subgraph 模型层
+        Qwen3Model[Qwen3Model]
+    end
+
+    subgraph embed_head.py
+        VocabParallelEmbedding[VocabParallelEmbedding]
+        ParallelLMHead[ParallelLMHead]
+    end
+
+    subgraph 依赖模块
+        torch[PyTorch]
+        dist[torch.distributed]
+        context[get_context]
+    end
+
+    subgraph 使用位置
+        Qwen3Model --&gt;|embed_tokens| VocabParallelEmbedding
+        Qwen3ForCausalLM --&gt;|lm_head| ParallelLMHead
+    end
+
+    VocabParallelEmbedding -.-&gt; torch
+    VocabParallelEmbedding -.-&gt; dist
+    ParallelLMHead -.-&gt; context</code></pre>
+<hr/>
+<h2 id="vocabparallelembedding">二、VocabParallelEmbedding 详解<a class="headerlink" href="#vocabparallelembedding" title="Permanent link">¶</a></h2>
+<h3 id="21">2.1 类结构<a class="headerlink" href="#21" title="Permanent link">¶</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a href="#__codelineno-1-1" id="__codelineno-1-1" name="__codelineno-1-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">VocabParallelEmbedding</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span><span id="__span-1-2"><a href="#__codelineno-1-2" id="__codelineno-1-2" name="__codelineno-1-2"></a><span class="w">    </span><span class="sd">"""</span>
+</span><span id="__span-1-3"><a href="#__codelineno-1-3" id="__codelineno-1-3" name="__codelineno-1-3"></a><span class="sd">    词汇表并行的词嵌入层</span>
+</span><span id="__span-1-4"><a href="#__codelineno-1-4" id="__codelineno-1-4" name="__codelineno-1-4"></a>
+</span><span id="__span-1-5"><a href="#__codelineno-1-5" id="__codelineno-1-5" name="__codelineno-1-5"></a><span class="sd">    将词汇表均匀切分到多个 GPU 上，每个 GPU 只存储部分词汇的嵌入向量。</span>
+</span><span id="__span-1-6"><a href="#__codelineno-1-6" id="__codelineno-1-6" name="__codelineno-1-6"></a><span class="sd">    """</span>
+</span><span id="__span-1-7"><a href="#__codelineno-1-7" id="__codelineno-1-7" name="__codelineno-1-7"></a>
+</span><span id="__span-1-8"><a href="#__codelineno-1-8" id="__codelineno-1-8" name="__codelineno-1-8"></a>    <span class="c1"># 核心属性</span>
+</span><span id="__span-1-9"><a href="#__codelineno-1-9" id="__codelineno-1-9" name="__codelineno-1-9"></a>    <span class="n">tp_rank</span><span class="p">:</span> <span class="nb">int</span>                        <span class="c1"># 当前 GPU 的排名</span>
+</span><span id="__span-1-10"><a href="#__codelineno-1-10" id="__codelineno-1-10" name="__codelineno-1-10"></a>    <span class="n">tp_size</span><span class="p">:</span> <span class="nb">int</span>                        <span class="c1"># GPU 总数</span>
+</span><span id="__span-1-11"><a href="#__codelineno-1-11" id="__codelineno-1-11" name="__codelineno-1-11"></a>    <span class="n">num_embeddings</span><span class="p">:</span> <span class="nb">int</span>                 <span class="c1"># 完整词汇表大小</span>
+</span><span id="__span-1-12"><a href="#__codelineno-1-12" id="__codelineno-1-12" name="__codelineno-1-12"></a>    <span class="n">num_embeddings_per_partition</span><span class="p">:</span> <span class="nb">int</span>   <span class="c1"># 当前 GPU 存储的词汇数</span>
+</span><span id="__span-1-13"><a href="#__codelineno-1-13" id="__codelineno-1-13" name="__codelineno-1-13"></a>    <span class="n">vocab_start_idx</span><span class="p">:</span> <span class="nb">int</span>                <span class="c1"># 当前 GPU 负责的起始索引</span>
+</span><span id="__span-1-14"><a href="#__codelineno-1-14" id="__codelineno-1-14" name="__codelineno-1-14"></a>    <span class="n">vocab_end_idx</span><span class="p">:</span> <span class="nb">int</span>                  <span class="c1"># 当前 GPU 负责的结束索引</span>
+</span><span id="__span-1-15"><a href="#__codelineno-1-15" id="__codelineno-1-15" name="__codelineno-1-15"></a>    <span class="n">weight</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span>                <span class="c1"># 嵌入权重矩阵</span>
+</span><span id="__span-1-16"><a href="#__codelineno-1-16" id="__codelineno-1-16" name="__codelineno-1-16"></a>
+</span><span id="__span-1-17"><a href="#__codelineno-1-17" id="__codelineno-1-17" name="__codelineno-1-17"></a>    <span class="c1"># 核心方法</span>
+</span><span id="__span-1-18"><a href="#__codelineno-1-18" id="__codelineno-1-18" name="__codelineno-1-18"></a>    <span class="fm">__init__</span><span class="p">()</span>                          <span class="c1"># 初始化</span>
+</span><span id="__span-1-19"><a href="#__codelineno-1-19" id="__codelineno-1-19" name="__codelineno-1-19"></a>    <span class="n">weight_loader</span><span class="p">()</span>                     <span class="c1"># 权重加载</span>
+</span><span id="__span-1-20"><a href="#__codelineno-1-20" id="__codelineno-1-20" name="__codelineno-1-20"></a>    <span class="n">forward</span><span class="p">()</span>                           <span class="c1"># 前向传播</span>
+</span></code></pre></div>
+<h3 id="22">2.2 初始化流程<a class="headerlink" href="#22" title="Permanent link">¶</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a href="#__codelineno-2-1" id="__codelineno-2-1" name="__codelineno-2-1"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_embeddings</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+</span><span id="__span-2-2"><a href="#__codelineno-2-2" id="__codelineno-2-2" name="__codelineno-2-2"></a>    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span><span id="__span-2-3"><a href="#__codelineno-2-3" id="__codelineno-2-3" name="__codelineno-2-3"></a>
+</span><span id="__span-2-4"><a href="#__codelineno-2-4" id="__codelineno-2-4" name="__codelineno-2-4"></a>    <span class="c1"># 1. 获取分布式环境信息</span>
+</span><span id="__span-2-5"><a href="#__codelineno-2-5" id="__codelineno-2-5" name="__codelineno-2-5"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">tp_rank</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">get_rank</span><span class="p">()</span>       <span class="c1"># 当前 GPU 排名</span>
+</span><span id="__span-2-6"><a href="#__codelineno-2-6" id="__codelineno-2-6" name="__codelineno-2-6"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">tp_size</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">get_world_size</span><span class="p">()</span> <span class="c1"># GPU 总数</span>
+</span><span id="__span-2-7"><a href="#__codelineno-2-7" id="__codelineno-2-7" name="__codelineno-2-7"></a>
+</span><span id="__span-2-8"><a href="#__codelineno-2-8" id="__codelineno-2-8" name="__codelineno-2-8"></a>    <span class="c1"># 2. 验证可整除性</span>
+</span><span id="__span-2-9"><a href="#__codelineno-2-9" id="__codelineno-2-9" name="__codelineno-2-9"></a>    <span class="k">assert</span> <span class="n">num_embeddings</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp_size</span> <span class="o">==</span> <span class="mi">0</span>
+</span><span id="__span-2-10"><a href="#__codelineno-2-10" id="__codelineno-2-10" name="__codelineno-2-10"></a>
+</span><span id="__span-2-11"><a href="#__codelineno-2-11" id="__codelineno-2-11" name="__codelineno-2-11"></a>    <span class="c1"># 3. 计算词汇表切分</span>
+</span><span id="__span-2-12"><a href="#__codelineno-2-12" id="__codelineno-2-12" name="__codelineno-2-12"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">num_embeddings</span> <span class="o">=</span> <span class="n">num_embeddings</span>
+</span><span id="__span-2-13"><a href="#__codelineno-2-13" id="__codelineno-2-13" name="__codelineno-2-13"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">num_embeddings_per_partition</span> <span class="o">=</span> <span class="n">num_embeddings</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp_size</span>
+</span><span id="__span-2-14"><a href="#__codelineno-2-14" id="__codelineno-2-14" name="__codelineno-2-14"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">vocab_start_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_embeddings_per_partition</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp_rank</span>
+</span><span id="__span-2-15"><a href="#__codelineno-2-15" id="__codelineno-2-15" name="__codelineno-2-15"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">vocab_end_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vocab_start_idx</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_embeddings_per_partition</span>
+</span><span id="__span-2-16"><a href="#__codelineno-2-16" id="__codelineno-2-16" name="__codelineno-2-16"></a>
+</span><span id="__span-2-17"><a href="#__codelineno-2-17" id="__codelineno-2-17" name="__codelineno-2-17"></a>    <span class="c1"># 4. 创建嵌入权重（只存储部分词汇）</span>
+</span><span id="__span-2-18"><a href="#__codelineno-2-18" id="__codelineno-2-18" name="__codelineno-2-18"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span>
+</span><span id="__span-2-19"><a href="#__codelineno-2-19" id="__codelineno-2-19" name="__codelineno-2-19"></a>        <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_embeddings_per_partition</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span><span id="__span-2-20"><a href="#__codelineno-2-20" id="__codelineno-2-20" name="__codelineno-2-20"></a>    <span class="p">)</span>
+</span><span id="__span-2-21"><a href="#__codelineno-2-21" id="__codelineno-2-21" name="__codelineno-2-21"></a>
+</span><span id="__span-2-22"><a href="#__codelineno-2-22" id="__codelineno-2-22" name="__codelineno-2-22"></a>    <span class="c1"># 5. 绑定权重加载器</span>
+</span><span id="__span-2-23"><a href="#__codelineno-2-23" id="__codelineno-2-23" name="__codelineno-2-23"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">weight_loader</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight_loader</span>
+</span></code></pre></div>
+<h3 id="23">2.3 权重加载器<a class="headerlink" href="#23" title="Permanent link">¶</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a href="#__codelineno-3-1" id="__codelineno-3-1" name="__codelineno-3-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">weight_loader</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">,</span> <span class="n">loaded_weight</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+</span><span id="__span-3-2"><a href="#__codelineno-3-2" id="__codelineno-3-2" name="__codelineno-3-2"></a><span class="w">    </span><span class="sd">"""</span>
+</span><span id="__span-3-3"><a href="#__codelineno-3-3" id="__codelineno-3-3" name="__codelineno-3-3"></a><span class="sd">    从完整预训练权重中加载当前 partition 的部分</span>
+</span><span id="__span-3-4"><a href="#__codelineno-3-4" id="__codelineno-3-4" name="__codelineno-3-4"></a>
+</span><span id="__span-3-5"><a href="#__codelineno-3-5" id="__codelineno-3-5" name="__codelineno-3-5"></a><span class="sd">    Args:</span>
+</span><span id="__span-3-6"><a href="#__codelineno-3-6" id="__codelineno-3-6" name="__codelineno-3-6"></a><span class="sd">        param: 当前 partition 的参数</span>
+</span><span id="__span-3-7"><a href="#__codelineno-3-7" id="__codelineno-3-7" name="__codelineno-3-7"></a><span class="sd">        loaded_weight: 完整的预训练权重 [vocab_size, embedding_dim]</span>
+</span><span id="__span-3-8"><a href="#__codelineno-3-8" id="__codelineno-3-8" name="__codelineno-3-8"></a><span class="sd">    """</span>
+</span><span id="__span-3-9"><a href="#__codelineno-3-9" id="__codelineno-3-9" name="__codelineno-3-9"></a>    <span class="n">param_data</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">data</span>
+</span><span id="__span-3-10"><a href="#__codelineno-3-10" id="__codelineno-3-10" name="__codelineno-3-10"></a>    <span class="n">shard_size</span> <span class="o">=</span> <span class="n">param_data</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># 当前 partition 大小</span>
+</span><span id="__span-3-11"><a href="#__codelineno-3-11" id="__codelineno-3-11" name="__codelineno-3-11"></a>
+</span><span id="__span-3-12"><a href="#__codelineno-3-12" id="__codelineno-3-12" name="__codelineno-3-12"></a>    <span class="c1"># 计算在完整权重中的起始位置</span>
+</span><span id="__span-3-13"><a href="#__codelineno-3-13" id="__codelineno-3-13" name="__codelineno-3-13"></a>    <span class="n">start_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp_rank</span> <span class="o">*</span> <span class="n">shard_size</span>
+</span><span id="__span-3-14"><a href="#__codelineno-3-14" id="__codelineno-3-14" name="__codelineno-3-14"></a>
+</span><span id="__span-3-15"><a href="#__codelineno-3-15" id="__codelineno-3-15" name="__codelineno-3-15"></a>    <span class="c1"># 从完整权重中切分出当前 GPU 负责的部分</span>
+</span><span id="__span-3-16"><a href="#__codelineno-3-16" id="__codelineno-3-16" name="__codelineno-3-16"></a>    <span class="n">loaded_weight</span> <span class="o">=</span> <span class="n">loaded_weight</span><span class="o">.</span><span class="n">narrow</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">start_idx</span><span class="p">,</span> <span class="n">shard_size</span><span class="p">)</span>
+</span><span id="__span-3-17"><a href="#__codelineno-3-17" id="__codelineno-3-17" name="__codelineno-3-17"></a>
+</span><span id="__span-3-18"><a href="#__codelineno-3-18" id="__codelineno-3-18" name="__codelineno-3-18"></a>    <span class="c1"># 复制到当前参数</span>
+</span><span id="__span-3-19"><a href="#__codelineno-3-19" id="__codelineno-3-19" name="__codelineno-3-19"></a>    <span class="n">param_data</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">loaded_weight</span><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>图示</strong>：
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a href="#__codelineno-4-1" id="__codelineno-4-1" name="__codelineno-4-1"></a>完整预训练权重 (HuggingFace 格式):
+</span><span id="__span-4-2"><a href="#__codelineno-4-2" id="__codelineno-4-2" name="__codelineno-4-2"></a>┌─────────────────────────────────────┐
+</span><span id="__span-4-3"><a href="#__codelineno-4-3" id="__codelineno-4-3" name="__codelineno-4-3"></a>│ [0:32000, :]                        │
+</span><span id="__span-4-4"><a href="#__codelineno-4-4" id="__codelineno-4-4" name="__codelineno-4-4"></a>│ ┌─────────────────────────────────┐ │
+</span><span id="__span-4-5"><a href="#__codelineno-4-5" id="__codelineno-4-5" name="__codelineno-4-5"></a>│ │ token 0-7999                    │ │ ← GPU 0 加载 (tp_rank=0)
+</span><span id="__span-4-6"><a href="#__codelineno-4-6" id="__codelineno-4-6" name="__codelineno-4-6"></a>│ ├─────────────────────────────────┤ │
+</span><span id="__span-4-7"><a href="#__codelineno-4-7" id="__codelineno-4-7" name="__codelineno-4-7"></a>│ │ token 8000-15999                │ │ ← GPU 1 加载 (tp_rank=1)
+</span><span id="__span-4-8"><a href="#__codelineno-4-8" id="__codelineno-4-8" name="__codelineno-4-8"></a>│ ├─────────────────────────────────┤ │
+</span><span id="__span-4-9"><a href="#__codelineno-4-9" id="__codelineno-4-9" name="__codelineno-4-9"></a>│ │ token 16000-23999               │ │ ← GPU 2 加载 (tp_rank=2)
+</span><span id="__span-4-10"><a href="#__codelineno-4-10" id="__codelineno-4-10" name="__codelineno-4-10"></a>│ ├─────────────────────────────────┤ │
+</span><span id="__span-4-11"><a href="#__codelineno-4-11" id="__codelineno-4-11" name="__codelineno-4-11"></a>│ │ token 24000-31999               │ │ ← GPU 3 加载 (tp_rank=3)
+</span><span id="__span-4-12"><a href="#__codelineno-4-12" id="__codelineno-4-12" name="__codelineno-4-12"></a>│ └─────────────────────────────────┘ │
+</span><span id="__span-4-13"><a href="#__codelineno-4-13" id="__codelineno-4-13" name="__codelineno-4-13"></a>└─────────────────────────────────────┘
+</span><span id="__span-4-14"><a href="#__codelineno-4-14" id="__codelineno-4-14" name="__codelineno-4-14"></a>
+</span><span id="__span-4-15"><a href="#__codelineno-4-15" id="__codelineno-4-15" name="__codelineno-4-15"></a>每个 GPU 加载后:
+</span><span id="__span-4-16"><a href="#__codelineno-4-16" id="__codelineno-4-16" name="__codelineno-4-16"></a>GPU 0: weight.shape = [8000, 4096]
+</span><span id="__span-4-17"><a href="#__codelineno-4-17" id="__codelineno-4-17" name="__codelineno-4-17"></a>GPU 1: weight.shape = [8000, 4096]
+</span><span id="__span-4-18"><a href="#__codelineno-4-18" id="__codelineno-4-18" name="__codelineno-4-18"></a>GPU 2: weight.shape = [8000, 4096]
+</span><span id="__span-4-19"><a href="#__codelineno-4-19" id="__codelineno-4-19" name="__codelineno-4-19"></a>GPU 3: weight.shape = [8000, 4096]
+</span></code></pre></div></p>
+<h3 id="24">2.4 前向传播详解<a class="headerlink" href="#24" title="Permanent link">¶</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a href="#__codelineno-5-1" id="__codelineno-5-1" name="__codelineno-5-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+</span><span id="__span-5-2"><a href="#__codelineno-5-2" id="__codelineno-5-2" name="__codelineno-5-2"></a><span class="w">    </span><span class="sd">"""</span>
+</span><span id="__span-5-3"><a href="#__codelineno-5-3" id="__codelineno-5-3" name="__codelineno-5-3"></a><span class="sd">    词嵌入前向传播</span>
+</span><span id="__span-5-4"><a href="#__codelineno-5-4" id="__codelineno-5-4" name="__codelineno-5-4"></a>
+</span><span id="__span-5-5"><a href="#__codelineno-5-5" id="__codelineno-5-5" name="__codelineno-5-5"></a><span class="sd">    Args:</span>
+</span><span id="__span-5-6"><a href="#__codelineno-5-6" id="__codelineno-5-6" name="__codelineno-5-6"></a><span class="sd">        x: 输入 token IDs, 形状为 [batch_size, seq_len]</span>
+</span><span id="__span-5-7"><a href="#__codelineno-5-7" id="__codelineno-5-7" name="__codelineno-5-7"></a>
+</span><span id="__span-5-8"><a href="#__codelineno-5-8" id="__codelineno-5-8" name="__codelineno-5-8"></a><span class="sd">    Returns:</span>
+</span><span id="__span-5-9"><a href="#__codelineno-5-9" id="__codelineno-5-9" name="__codelineno-5-9"></a><span class="sd">        嵌入向量，形状为 [batch_size, seq_len, embedding_dim]</span>
+</span><span id="__span-5-10"><a href="#__codelineno-5-10" id="__codelineno-5-10" name="__codelineno-5-10"></a><span class="sd">    """</span>
+</span><span id="__span-5-11"><a href="#__codelineno-5-11" id="__codelineno-5-11" name="__codelineno-5-11"></a>    <span class="c1"># ========== 步骤 1: 掩码处理 (tp_size &gt; 1) ==========</span>
+</span><span id="__span-5-12"><a href="#__codelineno-5-12" id="__codelineno-5-12" name="__codelineno-5-12"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp_size</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+</span><span id="__span-5-13"><a href="#__codelineno-5-13" id="__codelineno-5-13" name="__codelineno-5-13"></a>        <span class="c1"># 创建掩码：标记哪些 token 在当前 GPU 的词汇范围内</span>
+</span><span id="__span-5-14"><a href="#__codelineno-5-14" id="__codelineno-5-14" name="__codelineno-5-14"></a>        <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vocab_start_idx</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">x</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">vocab_end_idx</span><span class="p">)</span>
+</span><span id="__span-5-15"><a href="#__codelineno-5-15" id="__codelineno-5-15" name="__codelineno-5-15"></a>
+</span><span id="__span-5-16"><a href="#__codelineno-5-16" id="__codelineno-5-16" name="__codelineno-5-16"></a>        <span class="c1"># 将全局索引转换为局部索引</span>
+</span><span id="__span-5-17"><a href="#__codelineno-5-17" id="__codelineno-5-17" name="__codelineno-5-17"></a>        <span class="c1"># 不在范围内的 token 映射到 0（后续会被掩码置零）</span>
+</span><span id="__span-5-18"><a href="#__codelineno-5-18" id="__codelineno-5-18" name="__codelineno-5-18"></a>        <span class="n">x</span> <span class="o">=</span> <span class="n">mask</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">vocab_start_idx</span><span class="p">)</span>
+</span><span id="__span-5-19"><a href="#__codelineno-5-19" id="__codelineno-5-19" name="__codelineno-5-19"></a>
+</span><span id="__span-5-20"><a href="#__codelineno-5-20" id="__codelineno-5-20" name="__codelineno-5-20"></a>    <span class="c1"># ========== 步骤 2: 嵌入查找 ==========</span>
+</span><span id="__span-5-21"><a href="#__codelineno-5-21" id="__codelineno-5-21" name="__codelineno-5-21"></a>    <span class="n">y</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">embedding</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+</span><span id="__span-5-22"><a href="#__codelineno-5-22" id="__codelineno-5-22" name="__codelineno-5-22"></a>
+</span><span id="__span-5-23"><a href="#__codelineno-5-23" id="__codelineno-5-23" name="__codelineno-5-23"></a>    <span class="c1"># ========== 步骤 3: 应用掩码并 AllReduce (tp_size &gt; 1) ==========</span>
+</span><span id="__span-5-24"><a href="#__codelineno-5-24" id="__codelineno-5-24" name="__codelineno-5-24"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp_size</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+</span><span id="__span-5-25"><a href="#__codelineno-5-25" id="__codelineno-5-25" name="__codelineno-5-25"></a>        <span class="c1"># 应用掩码：将不在当前 GPU 范围内的 token 嵌入置零</span>
+</span><span id="__span-5-26"><a href="#__codelineno-5-26" id="__codelineno-5-26" name="__codelineno-5-26"></a>        <span class="n">y</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">y</span>
+</span><span id="__span-5-27"><a href="#__codelineno-5-27" id="__codelineno-5-27" name="__codelineno-5-27"></a>
+</span><span id="__span-5-28"><a href="#__codelineno-5-28" id="__codelineno-5-28" name="__codelineno-5-28"></a>        <span class="c1"># AllReduce: 所有 GPU 的结果相加</span>
+</span><span id="__span-5-29"><a href="#__codelineno-5-29" id="__codelineno-5-29" name="__codelineno-5-29"></a>        <span class="n">dist</span><span class="o">.</span><span class="n">all_reduce</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+</span><span id="__span-5-30"><a href="#__codelineno-5-30" id="__codelineno-5-30" name="__codelineno-5-30"></a>
+</span><span id="__span-5-31"><a href="#__codelineno-5-31" id="__codelineno-5-31" name="__codelineno-5-31"></a>    <span class="k">return</span> <span class="n">y</span>
+</span></code></pre></div>
+<h3 id="25">2.5 前向传播示例<a class="headerlink" href="#25" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a href="#__codelineno-6-1" id="__codelineno-6-1" name="__codelineno-6-1"></a>输入示例:
+</span><span id="__span-6-2"><a href="#__codelineno-6-2" id="__codelineno-6-2" name="__codelineno-6-2"></a>x = [0, 5000, 10000, 20000, 30000]  (5 个 token)
+</span><span id="__span-6-3"><a href="#__codelineno-6-3" id="__codelineno-6-3" name="__codelineno-6-3"></a>配置：vocab_size=32000, tp_size=4, 每个 GPU 负责 8000 个词
+</span><span id="__span-6-4"><a href="#__codelineno-6-4" id="__codelineno-6-4" name="__codelineno-6-4"></a>
+</span><span id="__span-6-5"><a href="#__codelineno-6-5" id="__codelineno-6-5" name="__codelineno-6-5"></a>═══════════════════════════════════════════════════════════
+</span><span id="__span-6-6"><a href="#__codelineno-6-6" id="__codelineno-6-6" name="__codelineno-6-6"></a>
+</span><span id="__span-6-7"><a href="#__codelineno-6-7" id="__codelineno-6-7" name="__codelineno-6-7"></a>GPU 0 (tp_rank=0, vocab_range=[0, 8000)):
+</span><span id="__span-6-8"><a href="#__codelineno-6-8" id="__codelineno-6-8" name="__codelineno-6-8"></a>───────────────────────────────────────────────────────────
+</span><span id="__span-6-9"><a href="#__codelineno-6-9" id="__codelineno-6-9" name="__codelineno-6-9"></a>1. mask = [True, True, False, False, False]
+</span><span id="__span-6-10"><a href="#__codelineno-6-10" id="__codelineno-6-10" name="__codelineno-6-10"></a>   - token 0 和 5000 在范围内
+</span><span id="__span-6-11"><a href="#__codelineno-6-11" id="__codelineno-6-11" name="__codelineno-6-11"></a>   - token 10000, 20000, 30000 不在范围内
+</span><span id="__span-6-12"><a href="#__codelineno-6-12" id="__codelineno-6-12" name="__codelineno-6-12"></a>
+</span><span id="__span-6-13"><a href="#__codelineno-6-13" id="__codelineno-6-13" name="__codelineno-6-13"></a>2. x_local = mask * (x - 0)
+</span><span id="__span-6-14"><a href="#__codelineno-6-14" id="__codelineno-6-14" name="__codelineno-6-14"></a>   = [0, 5000, 0, 0, 0]
+</span><span id="__span-6-15"><a href="#__codelineno-6-15" id="__codelineno-6-15" name="__codelineno-6-15"></a>   - 范围内的 token 转换为局部索引
+</span><span id="__span-6-16"><a href="#__codelineno-6-16" id="__codelineno-6-16" name="__codelineno-6-16"></a>   - 范围外的 token 映射到 0
+</span><span id="__span-6-17"><a href="#__codelineno-6-17" id="__codelineno-6-17" name="__codelineno-6-17"></a>
+</span><span id="__span-6-18"><a href="#__codelineno-6-18" id="__codelineno-6-18" name="__codelineno-6-18"></a>3. y = F.embedding(x_local, weight)
+</span><span id="__span-6-19"><a href="#__codelineno-6-19" id="__codelineno-6-19" name="__codelineno-6-19"></a>   = [emb[0], emb[5000], emb[0], emb[0], emb[0]]
+</span><span id="__span-6-20"><a href="#__codelineno-6-20" id="__codelineno-6-20" name="__codelineno-6-20"></a>   - 使用局部索引查找嵌入
+</span><span id="__span-6-21"><a href="#__codelineno-6-21" id="__codelineno-6-21" name="__codelineno-6-21"></a>
+</span><span id="__span-6-22"><a href="#__codelineno-6-22" id="__codelineno-6-22" name="__codelineno-6-22"></a>4. y = mask.unsqueeze(1) * y
+</span><span id="__span-6-23"><a href="#__codelineno-6-23" id="__codelineno-6-23" name="__codelineno-6-23"></a>   = [emb[0], emb[5000], 0, 0, 0]
+</span><span id="__span-6-24"><a href="#__codelineno-6-24" id="__codelineno-6-24" name="__codelineno-6-24"></a>   - 范围外的 token 嵌入置零
+</span><span id="__span-6-25"><a href="#__codelineno-6-25" id="__codelineno-6-25" name="__codelineno-6-25"></a>
+</span><span id="__span-6-26"><a href="#__codelineno-6-26" id="__codelineno-6-26" name="__codelineno-6-26"></a>5. dist.all_reduce(y)
+</span><span id="__span-6-27"><a href="#__codelineno-6-27" id="__codelineno-6-27" name="__codelineno-6-27"></a>   = [emb[0], emb[5000], 0, 0, 0] + 其他 GPU 的结果
+</span><span id="__span-6-28"><a href="#__codelineno-6-28" id="__codelineno-6-28" name="__codelineno-6-28"></a>
+</span><span id="__span-6-29"><a href="#__codelineno-6-29" id="__codelineno-6-29" name="__codelineno-6-29"></a>═══════════════════════════════════════════════════════════
+</span><span id="__span-6-30"><a href="#__codelineno-6-30" id="__codelineno-6-30" name="__codelineno-6-30"></a>
+</span><span id="__span-6-31"><a href="#__codelineno-6-31" id="__codelineno-6-31" name="__codelineno-6-31"></a>GPU 1 (tp_rank=1, vocab_range=[8000, 16000)):
+</span><span id="__span-6-32"><a href="#__codelineno-6-32" id="__codelineno-6-32" name="__codelineno-6-32"></a>───────────────────────────────────────────────────────────
+</span><span id="__span-6-33"><a href="#__codelineno-6-33" id="__codelineno-6-33" name="__codelineno-6-33"></a>1. mask = [False, False, True, False, False]
+</span><span id="__span-6-34"><a href="#__codelineno-6-34" id="__codelineno-6-34" name="__codelineno-6-34"></a>   - 只有 token 10000 在范围内
+</span><span id="__span-6-35"><a href="#__codelineno-6-35" id="__codelineno-6-35" name="__codelineno-6-35"></a>
+</span><span id="__span-6-36"><a href="#__codelineno-6-36" id="__codelineno-6-36" name="__codelineno-6-36"></a>2. x_local = mask * (x - 8000)
+</span><span id="__span-6-37"><a href="#__codelineno-6-37" id="__codelineno-6-37" name="__codelineno-6-37"></a>   = [0, 0, 2000, 0, 0]
+</span><span id="__span-6-38"><a href="#__codelineno-6-38" id="__codelineno-6-38" name="__codelineno-6-38"></a>   - 10000 - 8000 = 2000 (局部索引)
+</span><span id="__span-6-39"><a href="#__codelineno-6-39" id="__codelineno-6-39" name="__codelineno-6-39"></a>
+</span><span id="__span-6-40"><a href="#__codelineno-6-40" id="__codelineno-6-40" name="__codelineno-6-40"></a>3. y = F.embedding(x_local, weight)
+</span><span id="__span-6-41"><a href="#__codelineno-6-41" id="__codelineno-6-41" name="__codelineno-6-41"></a>   = [emb[0], emb[0], emb[2000], emb[0], emb[0]]
+</span><span id="__span-6-42"><a href="#__codelineno-6-42" id="__codelineno-6-42" name="__codelineno-6-42"></a>
+</span><span id="__span-6-43"><a href="#__codelineno-6-43" id="__codelineno-6-43" name="__codelineno-6-43"></a>4. y = mask.unsqueeze(1) * y
+</span><span id="__span-6-44"><a href="#__codelineno-6-44" id="__codelineno-6-44" name="__codelineno-6-44"></a>   = [0, 0, emb[10000], 0, 0]
+</span><span id="__span-6-45"><a href="#__codelineno-6-45" id="__codelineno-6-45" name="__codelineno-6-45"></a>
+</span><span id="__span-6-46"><a href="#__codelineno-6-46" id="__codelineno-6-46" name="__codelineno-6-46"></a>5. dist.all_reduce(y)
+</span><span id="__span-6-47"><a href="#__codelineno-6-47" id="__codelineno-6-47" name="__codelineno-6-47"></a>   = [0, 0, emb[10000], 0, 0] + 其他 GPU 的结果
+</span><span id="__span-6-48"><a href="#__codelineno-6-48" id="__codelineno-6-48" name="__codelineno-6-48"></a>
+</span><span id="__span-6-49"><a href="#__codelineno-6-49" id="__codelineno-6-49" name="__codelineno-6-49"></a>═══════════════════════════════════════════════════════════
+</span><span id="__span-6-50"><a href="#__codelineno-6-50" id="__codelineno-6-50" name="__codelineno-6-50"></a>
+</span><span id="__span-6-51"><a href="#__codelineno-6-51" id="__codelineno-6-51" name="__codelineno-6-51"></a>GPU 2 (tp_rank=2, vocab_range=[16000, 24000)):
+</span><span id="__span-6-52"><a href="#__codelineno-6-52" id="__codelineno-6-52" name="__codelineno-6-52"></a>───────────────────────────────────────────────────────────
+</span><span id="__span-6-53"><a href="#__codelineno-6-53" id="__codelineno-6-53" name="__codelineno-6-53"></a>1. mask = [False, False, False, True, False]
+</span><span id="__span-6-54"><a href="#__codelineno-6-54" id="__codelineno-6-54" name="__codelineno-6-54"></a>   - 只有 token 20000 在范围内
+</span><span id="__span-6-55"><a href="#__codelineno-6-55" id="__codelineno-6-55" name="__codelineno-6-55"></a>
+</span><span id="__span-6-56"><a href="#__codelineno-6-56" id="__codelineno-6-56" name="__codelineno-6-56"></a>2. x_local = mask * (x - 16000)
+</span><span id="__span-6-57"><a href="#__codelineno-6-57" id="__codelineno-6-57" name="__codelineno-6-57"></a>   = [0, 0, 0, 4000, 0]
+</span><span id="__span-6-58"><a href="#__codelineno-6-58" id="__codelineno-6-58" name="__codelineno-6-58"></a>   - 20000 - 16000 = 4000
+</span><span id="__span-6-59"><a href="#__codelineno-6-59" id="__codelineno-6-59" name="__codelineno-6-59"></a>
+</span><span id="__span-6-60"><a href="#__codelineno-6-60" id="__codelineno-6-60" name="__codelineno-6-60"></a>3-5. 类似处理...
+</span><span id="__span-6-61"><a href="#__codelineno-6-61" id="__codelineno-6-61" name="__codelineno-6-61"></a>   最终贡献：[0, 0, 0, emb[20000], 0]
+</span><span id="__span-6-62"><a href="#__codelineno-6-62" id="__codelineno-6-62" name="__codelineno-6-62"></a>
+</span><span id="__span-6-63"><a href="#__codelineno-6-63" id="__codelineno-6-63" name="__codelineno-6-63"></a>═══════════════════════════════════════════════════════════
+</span><span id="__span-6-64"><a href="#__codelineno-6-64" id="__codelineno-6-64" name="__codelineno-6-64"></a>
+</span><span id="__span-6-65"><a href="#__codelineno-6-65" id="__codelineno-6-65" name="__codelineno-6-65"></a>GPU 3 (tp_rank=3, vocab_range=[24000, 32000)):
+</span><span id="__span-6-66"><a href="#__codelineno-6-66" id="__codelineno-6-66" name="__codelineno-6-66"></a>───────────────────────────────────────────────────────────
+</span><span id="__span-6-67"><a href="#__codelineno-6-67" id="__codelineno-6-67" name="__codelineno-6-67"></a>1. mask = [False, False, False, False, True]
+</span><span id="__span-6-68"><a href="#__codelineno-6-68" id="__codelineno-6-68" name="__codelineno-6-68"></a>   - 只有 token 30000 在范围内
+</span><span id="__span-6-69"><a href="#__codelineno-6-69" id="__codelineno-6-69" name="__codelineno-6-69"></a>
+</span><span id="__span-6-70"><a href="#__codelineno-6-70" id="__codelineno-6-70" name="__codelineno-6-70"></a>2. x_local = mask * (x - 24000)
+</span><span id="__span-6-71"><a href="#__codelineno-6-71" id="__codelineno-6-71" name="__codelineno-6-71"></a>   = [0, 0, 0, 0, 6000]
+</span><span id="__span-6-72"><a href="#__codelineno-6-72" id="__codelineno-6-72" name="__codelineno-6-72"></a>   - 30000 - 24000 = 6000
+</span><span id="__span-6-73"><a href="#__codelineno-6-73" id="__codelineno-6-73" name="__codelineno-6-73"></a>
+</span><span id="__span-6-74"><a href="#__codelineno-6-74" id="__codelineno-6-74" name="__codelineno-6-74"></a>3-5. 类似处理...
+</span><span id="__span-6-75"><a href="#__codelineno-6-75" id="__codelineno-6-75" name="__codelineno-6-75"></a>   最终贡献：[0, 0, 0, 0, emb[30000]]
+</span><span id="__span-6-76"><a href="#__codelineno-6-76" id="__codelineno-6-76" name="__codelineno-6-76"></a>
+</span><span id="__span-6-77"><a href="#__codelineno-6-77" id="__codelineno-6-77" name="__codelineno-6-77"></a>═══════════════════════════════════════════════════════════
+</span><span id="__span-6-78"><a href="#__codelineno-6-78" id="__codelineno-6-78" name="__codelineno-6-78"></a>
+</span><span id="__span-6-79"><a href="#__codelineno-6-79" id="__codelineno-6-79" name="__codelineno-6-79"></a>AllReduce 后 (所有 GPU 得到相同结果):
+</span><span id="__span-6-80"><a href="#__codelineno-6-80" id="__codelineno-6-80" name="__codelineno-6-80"></a>y = [emb[0], emb[5000], emb[10000], emb[20000], emb[30000]]
+</span><span id="__span-6-81"><a href="#__codelineno-6-81" id="__codelineno-6-81" name="__codelineno-6-81"></a>形状：[batch_size=1, seq_len=5, embedding_dim=4096]
+</span></code></pre></div>
+<h3 id="26">2.6 掩码机制详解<a class="headerlink" href="#26" title="Permanent link">¶</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a href="#__codelineno-7-1" id="__codelineno-7-1" name="__codelineno-7-1"></a><span class="c1"># 为什么需要掩码？</span>
+</span><span id="__span-7-2"><a href="#__codelineno-7-2" id="__codelineno-7-2" name="__codelineno-7-2"></a><span class="c1"># 问题：不同 GPU 存储不同的词汇，如何处理任意输入？</span>
+</span><span id="__span-7-3"><a href="#__codelineno-7-3" id="__codelineno-7-3" name="__codelineno-7-3"></a>
+</span><span id="__span-7-4"><a href="#__codelineno-7-4" id="__codelineno-7-4" name="__codelineno-7-4"></a><span class="c1"># 解决方案：掩码 + 局部索引转换</span>
+</span><span id="__span-7-5"><a href="#__codelineno-7-5" id="__codelineno-7-5" name="__codelineno-7-5"></a>
+</span><span id="__span-7-6"><a href="#__codelineno-7-6" id="__codelineno-7-6" name="__codelineno-7-6"></a><span class="c1"># 步骤 1: 创建掩码</span>
+</span><span id="__span-7-7"><a href="#__codelineno-7-7" id="__codelineno-7-7" name="__codelineno-7-7"></a><span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">&gt;=</span> <span class="n">vocab_start_idx</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">x</span> <span class="o">&lt;</span> <span class="n">vocab_end_idx</span><span class="p">)</span>
+</span><span id="__span-7-8"><a href="#__codelineno-7-8" id="__codelineno-7-8" name="__codelineno-7-8"></a><span class="c1"># mask[i] = True  表示 token[i] 在当前 GPU 范围内</span>
+</span><span id="__span-7-9"><a href="#__codelineno-7-9" id="__codelineno-7-9" name="__codelineno-7-9"></a><span class="c1"># mask[i] = False 表示 token[i] 不在当前 GPU 范围</span>
+</span><span id="__span-7-10"><a href="#__codelineno-7-10" id="__codelineno-7-10" name="__codelineno-7-10"></a>
+</span><span id="__span-7-11"><a href="#__codelineno-7-11" id="__codelineno-7-11" name="__codelineno-7-11"></a><span class="c1"># 步骤 2: 索引转换</span>
+</span><span id="__span-7-12"><a href="#__codelineno-7-12" id="__codelineno-7-12" name="__codelineno-7-12"></a><span class="n">x_local</span> <span class="o">=</span> <span class="n">mask</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">vocab_start_idx</span><span class="p">)</span>
+</span><span id="__span-7-13"><a href="#__codelineno-7-13" id="__codelineno-7-13" name="__codelineno-7-13"></a><span class="c1"># 范围内：x_local = x - vocab_start_idx (转换为局部索引)</span>
+</span><span id="__span-7-14"><a href="#__codelineno-7-14" id="__codelineno-7-14" name="__codelineno-7-14"></a><span class="c1"># 范围外：x_local = 0 (映射到 0，避免索引越界)</span>
+</span><span id="__span-7-15"><a href="#__codelineno-7-15" id="__codelineno-7-15" name="__codelineno-7-15"></a>
+</span><span id="__span-7-16"><a href="#__codelineno-7-16" id="__codelineno-7-16" name="__codelineno-7-16"></a><span class="c1"># 步骤 3: 嵌入查找</span>
+</span><span id="__span-7-17"><a href="#__codelineno-7-17" id="__codelineno-7-17" name="__codelineno-7-17"></a><span class="n">y</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">embedding</span><span class="p">(</span><span class="n">x_local</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
+</span><span id="__span-7-18"><a href="#__codelineno-7-18" id="__codelineno-7-18" name="__codelineno-7-18"></a><span class="c1"># 使用局部索引查找嵌入向量</span>
+</span><span id="__span-7-19"><a href="#__codelineno-7-19" id="__codelineno-7-19" name="__codelineno-7-19"></a>
+</span><span id="__span-7-20"><a href="#__codelineno-7-20" id="__codelineno-7-20" name="__codelineno-7-20"></a><span class="c1"># 步骤 4: 应用掩码</span>
+</span><span id="__span-7-21"><a href="#__codelineno-7-21" id="__codelineno-7-21" name="__codelineno-7-21"></a><span class="n">y</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">y</span>
+</span><span id="__span-7-22"><a href="#__codelineno-7-22" id="__codelineno-7-22" name="__codelineno-7-22"></a><span class="c1"># 范围内：保持不变</span>
+</span><span id="__span-7-23"><a href="#__codelineno-7-23" id="__codelineno-7-23" name="__codelineno-7-23"></a><span class="c1"># 范围外：置零</span>
+</span><span id="__span-7-24"><a href="#__codelineno-7-24" id="__codelineno-7-24" name="__codelineno-7-24"></a>
+</span><span id="__span-7-25"><a href="#__codelineno-7-25" id="__codelineno-7-25" name="__codelineno-7-25"></a><span class="c1"># 步骤 5: AllReduce</span>
+</span><span id="__span-7-26"><a href="#__codelineno-7-26" id="__codelineno-7-26" name="__codelineno-7-26"></a><span class="n">dist</span><span class="o">.</span><span class="n">all_reduce</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+</span><span id="__span-7-27"><a href="#__codelineno-7-27" id="__codelineno-7-27" name="__codelineno-7-27"></a><span class="c1"># 所有 GPU 的结果相加，得到完整嵌入</span>
+</span></code></pre></div>
+<hr/>
+<h2 id="parallellmhead">三、ParallelLMHead 详解<a class="headerlink" href="#parallellmhead" title="Permanent link">¶</a></h2>
+<h3 id="31">3.1 类结构<a class="headerlink" href="#31" title="Permanent link">¶</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a href="#__codelineno-8-1" id="__codelineno-8-1" name="__codelineno-8-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">ParallelLMHead</span><span class="p">(</span><span class="n">VocabParallelEmbedding</span><span class="p">):</span>
+</span><span id="__span-8-2"><a href="#__codelineno-8-2" id="__codelineno-8-2" name="__codelineno-8-2"></a><span class="w">    </span><span class="sd">"""</span>
+</span><span id="__span-8-3"><a href="#__codelineno-8-3" id="__codelineno-8-3" name="__codelineno-8-3"></a><span class="sd">    词汇表并行的语言模型输出头</span>
+</span><span id="__span-8-4"><a href="#__codelineno-8-4" id="__codelineno-8-4" name="__codelineno-8-4"></a>
+</span><span id="__span-8-5"><a href="#__codelineno-8-5" id="__codelineno-8-5" name="__codelineno-8-5"></a><span class="sd">    继承自 VocabParallelEmbedding，共享词汇表并行策略。</span>
+</span><span id="__span-8-6"><a href="#__codelineno-8-6" id="__codelineno-8-6" name="__codelineno-8-6"></a><span class="sd">    将隐藏状态映射到词汇表上的 logits 分布。</span>
+</span><span id="__span-8-7"><a href="#__codelineno-8-7" id="__codelineno-8-7" name="__codelineno-8-7"></a><span class="sd">    """</span>
+</span><span id="__span-8-8"><a href="#__codelineno-8-8" id="__codelineno-8-8" name="__codelineno-8-8"></a>
+</span><span id="__span-8-9"><a href="#__codelineno-8-9" id="__codelineno-8-9" name="__codelineno-8-9"></a>    <span class="c1"># 继承的属性</span>
+</span><span id="__span-8-10"><a href="#__codelineno-8-10" id="__codelineno-8-10" name="__codelineno-8-10"></a>    <span class="n">tp_rank</span><span class="p">:</span> <span class="nb">int</span>
+</span><span id="__span-8-11"><a href="#__codelineno-8-11" id="__codelineno-8-11" name="__codelineno-8-11"></a>    <span class="n">tp_size</span><span class="p">:</span> <span class="nb">int</span>
+</span><span id="__span-8-12"><a href="#__codelineno-8-12" id="__codelineno-8-12" name="__codelineno-8-12"></a>    <span class="n">vocab_start_idx</span><span class="p">:</span> <span class="nb">int</span>
+</span><span id="__span-8-13"><a href="#__codelineno-8-13" id="__codelineno-8-13" name="__codelineno-8-13"></a>    <span class="n">vocab_end_idx</span><span class="p">:</span> <span class="nb">int</span>
+</span><span id="__span-8-14"><a href="#__codelineno-8-14" id="__codelineno-8-14" name="__codelineno-8-14"></a>    <span class="n">weight</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span>
+</span><span id="__span-8-15"><a href="#__codelineno-8-15" id="__codelineno-8-15" name="__codelineno-8-15"></a>
+</span><span id="__span-8-16"><a href="#__codelineno-8-16" id="__codelineno-8-16" name="__codelineno-8-16"></a>    <span class="c1"># 核心方法</span>
+</span><span id="__span-8-17"><a href="#__codelineno-8-17" id="__codelineno-8-17" name="__codelineno-8-17"></a>    <span class="fm">__init__</span><span class="p">()</span>     <span class="c1"># 初始化</span>
+</span><span id="__span-8-18"><a href="#__codelineno-8-18" id="__codelineno-8-18" name="__codelineno-8-18"></a>    <span class="n">forward</span><span class="p">()</span>      <span class="c1"># 前向传播：计算 logits</span>
+</span></code></pre></div>
+<h3 id="32">3.2 初始化<a class="headerlink" href="#32" title="Permanent link">¶</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a href="#__codelineno-9-1" id="__codelineno-9-1" name="__codelineno-9-1"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+</span><span id="__span-9-2"><a href="#__codelineno-9-2" id="__codelineno-9-2" name="__codelineno-9-2"></a>    <span class="bp">self</span><span class="p">,</span>
+</span><span id="__span-9-3"><a href="#__codelineno-9-3" id="__codelineno-9-3" name="__codelineno-9-3"></a>    <span class="n">num_embeddings</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span id="__span-9-4"><a href="#__codelineno-9-4" id="__codelineno-9-4" name="__codelineno-9-4"></a>    <span class="n">embedding_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span id="__span-9-5"><a href="#__codelineno-9-5" id="__codelineno-9-5" name="__codelineno-9-5"></a>    <span class="n">bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-9-6"><a href="#__codelineno-9-6" id="__codelineno-9-6" name="__codelineno-9-6"></a><span class="p">):</span>
+</span><span id="__span-9-7"><a href="#__codelineno-9-7" id="__codelineno-9-7" name="__codelineno-9-7"></a>    <span class="c1"># 不支持偏置</span>
+</span><span id="__span-9-8"><a href="#__codelineno-9-8" id="__codelineno-9-8" name="__codelineno-9-8"></a>    <span class="k">assert</span> <span class="ow">not</span> <span class="n">bias</span>
+</span><span id="__span-9-9"><a href="#__codelineno-9-9" id="__codelineno-9-9" name="__codelineno-9-9"></a>
+</span><span id="__span-9-10"><a href="#__codelineno-9-10" id="__codelineno-9-10" name="__codelineno-9-10"></a>    <span class="c1"># 调用父类初始化</span>
+</span><span id="__span-9-11"><a href="#__codelineno-9-11" id="__codelineno-9-11" name="__codelineno-9-11"></a>    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">num_embeddings</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="33">3.3 前向传播详解<a class="headerlink" href="#33" title="Permanent link">¶</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a href="#__codelineno-10-1" id="__codelineno-10-1" name="__codelineno-10-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+</span><span id="__span-10-2"><a href="#__codelineno-10-2" id="__codelineno-10-2" name="__codelineno-10-2"></a><span class="w">    </span><span class="sd">"""</span>
+</span><span id="__span-10-3"><a href="#__codelineno-10-3" id="__codelineno-10-3" name="__codelineno-10-3"></a><span class="sd">    LM 头前向传播：计算词汇表 logits</span>
+</span><span id="__span-10-4"><a href="#__codelineno-10-4" id="__codelineno-10-4" name="__codelineno-10-4"></a>
+</span><span id="__span-10-5"><a href="#__codelineno-10-5" id="__codelineno-10-5" name="__codelineno-10-5"></a><span class="sd">    Args:</span>
+</span><span id="__span-10-6"><a href="#__codelineno-10-6" id="__codelineno-10-6" name="__codelineno-10-6"></a><span class="sd">        x: 隐藏状态，形状为 [total_tokens, hidden_size]</span>
+</span><span id="__span-10-7"><a href="#__codelineno-10-7" id="__codelineno-10-7" name="__codelineno-10-7"></a><span class="sd">            - total_tokens 是所有序列的 token 总数（变长）</span>
+</span><span id="__span-10-8"><a href="#__codelineno-10-8" id="__codelineno-10-8" name="__codelineno-10-8"></a>
+</span><span id="__span-10-9"><a href="#__codelineno-10-9" id="__codelineno-10-9" name="__codelineno-10-9"></a><span class="sd">    Returns:</span>
+</span><span id="__span-10-10"><a href="#__codelineno-10-10" id="__codelineno-10-10" name="__codelineno-10-10"></a><span class="sd">        logits: 词汇表 logits</span>
+</span><span id="__span-10-11"><a href="#__codelineno-10-11" id="__codelineno-10-11" name="__codelineno-10-11"></a><span class="sd">            - rank=0: [num_seqs, vocab_size]</span>
+</span><span id="__span-10-12"><a href="#__codelineno-10-12" id="__codelineno-10-12" name="__codelineno-10-12"></a><span class="sd">            - rank&gt;0: None</span>
+</span><span id="__span-10-13"><a href="#__codelineno-10-13" id="__codelineno-10-13" name="__codelineno-10-13"></a><span class="sd">    """</span>
+</span><span id="__span-10-14"><a href="#__codelineno-10-14" id="__codelineno-10-14" name="__codelineno-10-14"></a>    <span class="c1"># ========== 步骤 1: 获取上下文 ==========</span>
+</span><span id="__span-10-15"><a href="#__codelineno-10-15" id="__codelineno-10-15" name="__codelineno-10-15"></a>    <span class="n">context</span> <span class="o">=</span> <span class="n">get_context</span><span class="p">()</span>
+</span><span id="__span-10-16"><a href="#__codelineno-10-16" id="__codelineno-10-16" name="__codelineno-10-16"></a>
+</span><span id="__span-10-17"><a href="#__codelineno-10-17" id="__codelineno-10-17" name="__codelineno-10-17"></a>    <span class="c1"># ========== 步骤 2: Prefill 模式处理 ==========</span>
+</span><span id="__span-10-18"><a href="#__codelineno-10-18" id="__codelineno-10-18" name="__codelineno-10-18"></a>    <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">is_prefill</span><span class="p">:</span>
+</span><span id="__span-10-19"><a href="#__codelineno-10-19" id="__codelineno-10-19" name="__codelineno-10-19"></a>        <span class="c1"># 只提取每个序列最后一个 token 的 logits</span>
+</span><span id="__span-10-20"><a href="#__codelineno-10-20" id="__codelineno-10-20" name="__codelineno-10-20"></a>        <span class="c1"># cu_seqlens_q[1:] 是每个序列的结束位置</span>
+</span><span id="__span-10-21"><a href="#__codelineno-10-21" id="__codelineno-10-21" name="__codelineno-10-21"></a>        <span class="n">last_indices</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">cu_seqlens_q</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="mi">1</span>
+</span><span id="__span-10-22"><a href="#__codelineno-10-22" id="__codelineno-10-22" name="__codelineno-10-22"></a>        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">last_indices</span><span class="p">]</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+</span><span id="__span-10-23"><a href="#__codelineno-10-23" id="__codelineno-10-23" name="__codelineno-10-23"></a>
+</span><span id="__span-10-24"><a href="#__codelineno-10-24" id="__codelineno-10-24" name="__codelineno-10-24"></a>    <span class="c1"># ========== 步骤 3: 计算 logits (当前 GPU 负责的部分) ==========</span>
+</span><span id="__span-10-25"><a href="#__codelineno-10-25" id="__codelineno-10-25" name="__codelineno-10-25"></a>    <span class="n">logits</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+</span><span id="__span-10-26"><a href="#__codelineno-10-26" id="__codelineno-10-26" name="__codelineno-10-26"></a>    <span class="c1"># logits.shape = [num_tokens, num_embeddings_per_partition]</span>
+</span><span id="__span-10-27"><a href="#__codelineno-10-27" id="__codelineno-10-27" name="__codelineno-10-27"></a>
+</span><span id="__span-10-28"><a href="#__codelineno-10-28" id="__codelineno-10-28" name="__codelineno-10-28"></a>    <span class="c1"># ========== 步骤 4: Gather 操作 (tp_size &gt; 1) ==========</span>
+</span><span id="__span-10-29"><a href="#__codelineno-10-29" id="__codelineno-10-29" name="__codelineno-10-29"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp_size</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+</span><span id="__span-10-30"><a href="#__codelineno-10-30" id="__codelineno-10-30" name="__codelineno-10-30"></a>        <span class="c1"># rank=0 准备接收缓冲区</span>
+</span><span id="__span-10-31"><a href="#__codelineno-10-31" id="__codelineno-10-31" name="__codelineno-10-31"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span id="__span-10-32"><a href="#__codelineno-10-32" id="__codelineno-10-32" name="__codelineno-10-32"></a>            <span class="n">all_logits</span> <span class="o">=</span> <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tp_size</span><span class="p">)]</span>
+</span><span id="__span-10-33"><a href="#__codelineno-10-33" id="__codelineno-10-33" name="__codelineno-10-33"></a>        <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-10-34"><a href="#__codelineno-10-34" id="__codelineno-10-34" name="__codelineno-10-34"></a>            <span class="n">all_logits</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-10-35"><a href="#__codelineno-10-35" id="__codelineno-10-35" name="__codelineno-10-35"></a>
+</span><span id="__span-10-36"><a href="#__codelineno-10-36" id="__codelineno-10-36" name="__codelineno-10-36"></a>        <span class="c1"># 将所有 GPU 的 logits gather 到 rank=0</span>
+</span><span id="__span-10-37"><a href="#__codelineno-10-37" id="__codelineno-10-37" name="__codelineno-10-37"></a>        <span class="n">dist</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">all_logits</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-10-38"><a href="#__codelineno-10-38" id="__codelineno-10-38" name="__codelineno-10-38"></a>
+</span><span id="__span-10-39"><a href="#__codelineno-10-39" id="__codelineno-10-39" name="__codelineno-10-39"></a>        <span class="c1"># rank=0 拼接所有 logits</span>
+</span><span id="__span-10-40"><a href="#__codelineno-10-40" id="__codelineno-10-40" name="__codelineno-10-40"></a>        <span class="n">logits</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">all_logits</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp_rank</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span>
+</span><span id="__span-10-41"><a href="#__codelineno-10-41" id="__codelineno-10-41" name="__codelineno-10-41"></a>
+</span><span id="__span-10-42"><a href="#__codelineno-10-42" id="__codelineno-10-42" name="__codelineno-10-42"></a>    <span class="k">return</span> <span class="n">logits</span>
+</span></code></pre></div>
+<h3 id="34-prefill">3.4 Prefill 模式处理<a class="headerlink" href="#34-prefill" title="Permanent link">¶</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a href="#__codelineno-11-1" id="__codelineno-11-1" name="__codelineno-11-1"></a><span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">is_prefill</span><span class="p">:</span>
+</span><span id="__span-11-2"><a href="#__codelineno-11-2" id="__codelineno-11-2" name="__codelineno-11-2"></a>    <span class="c1"># Prefill 模式：只提取每个序列最后一个 token 的 logits</span>
+</span><span id="__span-11-3"><a href="#__codelineno-11-3" id="__codelineno-11-3" name="__codelineno-11-3"></a>    <span class="n">last_indices</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">cu_seqlens_q</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="mi">1</span>
+</span><span id="__span-11-4"><a href="#__codelineno-11-4" id="__codelineno-11-4" name="__codelineno-11-4"></a>    <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">last_indices</span><span class="p">]</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+</span></code></pre></div>
+<p><strong>图示</strong>：
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a href="#__codelineno-12-1" id="__codelineno-12-1" name="__codelineno-12-1"></a>输入隐藏状态 (所有 token):
+</span><span id="__span-12-2"><a href="#__codelineno-12-2" id="__codelineno-12-2" name="__codelineno-12-2"></a>┌─────────────────────────────────────────────────────────┐
+</span><span id="__span-12-3"><a href="#__codelineno-12-3" id="__codelineno-12-3" name="__codelineno-12-3"></a>│ Seq0: [h0_0, h0_1, h0_2, ..., h0_n]                     │
+</span><span id="__span-12-4"><a href="#__codelineno-12-4" id="__codelineno-12-4" name="__codelineno-12-4"></a>│ Seq1: [h1_0, h1_1, h1_2, ..., h1_m]                     │
+</span><span id="__span-12-5"><a href="#__codelineno-12-5" id="__codelineno-12-5" name="__codelineno-12-5"></a>│ Seq2: [h2_0, h2_1, h2_2, ..., h2_k]                     │
+</span><span id="__span-12-6"><a href="#__codelineno-12-6" id="__codelineno-12-6" name="__codelineno-12-6"></a>└─────────────────────────────────────────────────────────┘
+</span><span id="__span-12-7"><a href="#__codelineno-12-7" id="__codelineno-12-7" name="__codelineno-12-7"></a>
+</span><span id="__span-12-8"><a href="#__codelineno-12-8" id="__codelineno-12-8" name="__codelineno-12-8"></a>cu_seqlens_q:
+</span><span id="__span-12-9"><a href="#__codelineno-12-9" id="__codelineno-12-9" name="__codelineno-12-9"></a>[0, n+1, n+1+m+1, n+1+m+1+k+1]
+</span><span id="__span-12-10"><a href="#__codelineno-12-10" id="__codelineno-12-10" name="__codelineno-12-10"></a> │   │        │          │
+</span><span id="__span-12-11"><a href="#__codelineno-12-11" id="__codelineno-12-11" name="__codelineno-12-11"></a> │   │        │          └─ Seq2 结束位置
+</span><span id="__span-12-12"><a href="#__codelineno-12-12" id="__codelineno-12-12" name="__codelineno-12-12"></a> │   │        └─ Seq1 结束位置
+</span><span id="__span-12-13"><a href="#__codelineno-12-13" id="__codelineno-12-13" name="__codelineno-12-13"></a> │   └─ Seq0 结束位置
+</span><span id="__span-12-14"><a href="#__codelineno-12-14" id="__codelineno-12-14" name="__codelineno-12-14"></a> └─ 起始位置
+</span><span id="__span-12-15"><a href="#__codelineno-12-15" id="__codelineno-12-15" name="__codelineno-12-15"></a>
+</span><span id="__span-12-16"><a href="#__codelineno-12-16" id="__codelineno-12-16" name="__codelineno-12-16"></a>last_indices = cu_seqlens_q[1:] - 1:
+</span><span id="__span-12-17"><a href="#__codelineno-12-17" id="__codelineno-12-17" name="__codelineno-12-17"></a>[n, n+m+1, n+m+k+2]
+</span><span id="__span-12-18"><a href="#__codelineno-12-18" id="__codelineno-12-18" name="__codelineno-12-18"></a> │   │      │
+</span><span id="__span-12-19"><a href="#__codelineno-12-19" id="__codelineno-12-19" name="__codelineno-12-19"></a> │   │      └─ Seq2 最后一个 token 索引
+</span><span id="__span-12-20"><a href="#__codelineno-12-20" id="__codelineno-12-20" name="__codelineno-12-20"></a> │   └─ Seq1 最后一个 token 索引
+</span><span id="__span-12-21"><a href="#__codelineno-12-21" id="__codelineno-12-21" name="__codelineno-12-21"></a> └─ Seq0 最后一个 token 索引
+</span><span id="__span-12-22"><a href="#__codelineno-12-22" id="__codelineno-12-22" name="__codelineno-12-22"></a>
+</span><span id="__span-12-23"><a href="#__codelineno-12-23" id="__codelineno-12-23" name="__codelineno-12-23"></a>提取后:
+</span><span id="__span-12-24"><a href="#__codelineno-12-24" id="__codelineno-12-24" name="__codelineno-12-24"></a>x = [h0_n, h1_(n+m+1), h2_(n+m+k+2)]
+</span><span id="__span-12-25"><a href="#__codelineno-12-25" id="__codelineno-12-25" name="__codelineno-12-25"></a>    └────┘ └────────┘ └────────┘
+</span><span id="__span-12-26"><a href="#__codelineno-12-26" id="__codelineno-12-26" name="__codelineno-12-26"></a>     Seq0   Seq1     Seq2
+</span></code></pre></div></p>
+<h3 id="35-token-logits">3.5 为什么只提取最后一个 token 的 logits？<a class="headerlink" href="#35-token-logits" title="Permanent link">¶</a></h3>
+<p><strong>核心原因</strong>：在自回归生成中，只有最后一个 token 的 logits 用于采样生成**下一个 token**。</p>
+<h4 id="prefill-vs-decode">Prefill 阶段 vs Decode 阶段<a class="headerlink" href="#prefill-vs-decode" title="Permanent link">¶</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a href="#__codelineno-13-1" id="__codelineno-13-1" name="__codelineno-13-1"></a>Prefill 阶段 (处理用户输入 prompt):
+</span><span id="__span-13-2"><a href="#__codelineno-13-2" id="__codelineno-13-2" name="__codelineno-13-2"></a>─────────────────────────────────────────────────────────
+</span><span id="__span-13-3"><a href="#__codelineno-13-3" id="__codelineno-13-3" name="__codelineno-13-3"></a>用户输入："Hello, how are"
+</span><span id="__span-13-4"><a href="#__codelineno-13-4" id="__codelineno-13-4" name="__codelineno-13-4"></a>
+</span><span id="__span-13-5"><a href="#__codelineno-13-5" id="__codelineno-13-5" name="__codelineno-13-5"></a>输入 token:  [Hello] [how] [are]
+</span><span id="__span-13-6"><a href="#__codelineno-13-6" id="__codelineno-13-6" name="__codelineno-13-6"></a>                │      │      │
+</span><span id="__span-13-7"><a href="#__codelineno-13-7" id="__codelineno-13-7" name="__codelineno-13-7"></a>                ▼      ▼      ▼
+</span><span id="__span-13-8"><a href="#__codelineno-13-8" id="__codelineno-13-8" name="__codelineno-13-8"></a>隐藏状态：   [h₀]   [h₁]   [h₂]
+</span><span id="__span-13-9"><a href="#__codelineno-13-9" id="__codelineno-13-9" name="__codelineno-13-9"></a>                │      │      │
+</span><span id="__span-13-10"><a href="#__codelineno-13-10" id="__codelineno-13-10" name="__codelineno-13-10"></a>                │      │      └─→ 提取 logits → 采样生成第一个输出 token "you"
+</span><span id="__span-13-11"><a href="#__codelineno-13-11" id="__codelineno-13-11" name="__codelineno-13-11"></a>                │      │
+</span><span id="__span-13-12"><a href="#__codelineno-13-12" id="__codelineno-13-12" name="__codelineno-13-12"></a>                │      └─→ 不提取 logits (仅用于计算 KV Cache)
+</span><span id="__span-13-13"><a href="#__codelineno-13-13" id="__codelineno-13-13" name="__codelineno-13-13"></a>                │
+</span><span id="__span-13-14"><a href="#__codelineno-13-14" id="__codelineno-13-14" name="__codelineno-13-14"></a>                └─→ 不提取 logits (仅用于计算 KV Cache)
+</span><span id="__span-13-15"><a href="#__codelineno-13-15" id="__codelineno-13-15" name="__codelineno-13-15"></a>
+</span><span id="__span-13-16"><a href="#__codelineno-13-16" id="__codelineno-13-16" name="__codelineno-13-16"></a>关键点:
+</span><span id="__span-13-17"><a href="#__codelineno-13-17" id="__codelineno-13-17" name="__codelineno-13-17"></a>- 所有输入 token 都要计算 KV Cache (用于后续 Decode 阶段)
+</span><span id="__span-13-18"><a href="#__codelineno-13-18" id="__codelineno-13-18" name="__codelineno-13-18"></a>- 但只有最后一个 token 的 logits 用于生成下一个输出 token
+</span><span id="__span-13-19"><a href="#__codelineno-13-19" id="__codelineno-13-19" name="__codelineno-13-19"></a>- 中间 token 的 logits 不需要 (浪费计算)
+</span></code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a href="#__codelineno-14-1" id="__codelineno-14-1" name="__codelineno-14-1"></a>Decode 阶段 (逐 token 生成):
+</span><span id="__span-14-2"><a href="#__codelineno-14-2" id="__codelineno-14-2" name="__codelineno-14-2"></a>─────────────────────────────────────────────────────────
+</span><span id="__span-14-3"><a href="#__codelineno-14-3" id="__codelineno-14-3" name="__codelineno-14-3"></a>已生成："Hello, how are you"
+</span><span id="__span-14-4"><a href="#__codelineno-14-4" id="__codelineno-14-4" name="__codelineno-14-4"></a>
+</span><span id="__span-14-5"><a href="#__codelineno-14-5" id="__codelineno-14-5" name="__codelineno-14-5"></a>输入 token:  [you]  (上一个生成的 token)
+</span><span id="__span-14-6"><a href="#__codelineno-14-6" id="__codelineno-14-6" name="__codelineno-14-6"></a>              │
+</span><span id="__span-14-7"><a href="#__codelineno-14-7" id="__codelineno-14-7" name="__codelineno-14-7"></a>              ▼
+</span><span id="__span-14-8"><a href="#__codelineno-14-8" id="__codelineno-14-8" name="__codelineno-14-8"></a>隐藏状态：   [h₃]
+</span><span id="__span-14-9"><a href="#__codelineno-14-9" id="__codelineno-14-9" name="__codelineno-14-9"></a>              │
+</span><span id="__span-14-10"><a href="#__codelineno-14-10" id="__codelineno-14-10" name="__codelineno-14-10"></a>              └─→ 计算 logits → 采样生成下一个输出 token " doing"
+</span><span id="__span-14-11"><a href="#__codelineno-14-11" id="__codelineno-14-11" name="__codelineno-14-11"></a>
+</span><span id="__span-14-12"><a href="#__codelineno-14-12" id="__codelineno-14-12" name="__codelineno-14-12"></a>关键点:
+</span><span id="__span-14-13"><a href="#__codelineno-14-13" id="__codelineno-14-13" name="__codelineno-14-13"></a>- 每次只输入上一个生成的 token
+</span><span id="__span-14-14"><a href="#__codelineno-14-14" id="__codelineno-14-14" name="__codelineno-14-14"></a>- 计算 logits 采样生成下一个 token
+</span><span id="__span-14-15"><a href="#__codelineno-14-15" id="__codelineno-14-15" name="__codelineno-14-15"></a>- 此时只有一个 token，自然就是"最后一个"
+</span></code></pre></div>
+<h4 id="_3">两阶段对比<a class="headerlink" href="#_3" title="Permanent link">¶</a></h4>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>输入</th>
+<th>提取的 logits</th>
+<th>生成的 token</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Prefill</strong></td>
+<td>完整 prompt (n 个 token)</td>
+<td>第 n-1 个 token (最后一个)</td>
+<td>第 1 个输出 token</td>
+</tr>
+<tr>
+<td><strong>Decode</strong></td>
+<td>上一个生成的 token (1 个)</td>
+<td>该 token (唯一的)</td>
+<td>下一个输出 token</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_4">完整生成流程示例<a class="headerlink" href="#_4" title="Permanent link">¶</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a href="#__codelineno-15-1" id="__codelineno-15-1" name="__codelineno-15-1"></a>用户输入："Hello, how are"
+</span><span id="__span-15-2"><a href="#__codelineno-15-2" id="__codelineno-15-2" name="__codelineno-15-2"></a>期望输出："Hello, how are you doing today"
+</span><span id="__span-15-3"><a href="#__codelineno-15-3" id="__codelineno-15-3" name="__codelineno-15-3"></a>
+</span><span id="__span-15-4"><a href="#__codelineno-15-4" id="__codelineno-15-4" name="__codelineno-15-4"></a>═══════════════════════════════════════════════════════════
+</span><span id="__span-15-5"><a href="#__codelineno-15-5" id="__codelineno-15-5" name="__codelineno-15-5"></a>
+</span><span id="__span-15-6"><a href="#__codelineno-15-6" id="__codelineno-15-6" name="__codelineno-15-6"></a>Step 1 - Prefill 阶段:
+</span><span id="__span-15-7"><a href="#__codelineno-15-7" id="__codelineno-15-7" name="__codelineno-15-7"></a>─────────────────────────────────────────────────────────
+</span><span id="__span-15-8"><a href="#__codelineno-15-8" id="__codelineno-15-8" name="__codelineno-15-8"></a>输入：["Hello", "how", "are"]
+</span><span id="__span-15-9"><a href="#__codelineno-15-9" id="__codelineno-15-9" name="__codelineno-15-9"></a>      └─ 计算所有 token 的 KV Cache
+</span><span id="__span-15-10"><a href="#__codelineno-15-10" id="__codelineno-15-10" name="__codelineno-15-10"></a>      └─ 只提取 "are" 的 logits
+</span><span id="__span-15-11"><a href="#__codelineno-15-11" id="__codelineno-15-11" name="__codelineno-15-11"></a>
+</span><span id="__span-15-12"><a href="#__codelineno-15-12" id="__codelineno-15-12" name="__codelineno-15-12"></a>输出：采样生成 "you"
+</span><span id="__span-15-13"><a href="#__codelineno-15-13" id="__codelineno-15-13" name="__codelineno-15-13"></a>
+</span><span id="__span-15-14"><a href="#__codelineno-15-14" id="__codelineno-15-14" name="__codelineno-15-14"></a>═══════════════════════════════════════════════════════════
+</span><span id="__span-15-15"><a href="#__codelineno-15-15" id="__codelineno-15-15" name="__codelineno-15-15"></a>
+</span><span id="__span-15-16"><a href="#__codelineno-15-16" id="__codelineno-15-16" name="__codelineno-15-16"></a>Step 2 - Decode (第 1 次):
+</span><span id="__span-15-17"><a href="#__codelineno-15-17" id="__codelineno-15-17" name="__codelineno-15-17"></a>─────────────────────────────────────────────────────────
+</span><span id="__span-15-18"><a href="#__codelineno-15-18" id="__codelineno-15-18" name="__codelineno-15-18"></a>输入：["you"]
+</span><span id="__span-15-19"><a href="#__codelineno-15-19" id="__codelineno-15-19" name="__codelineno-15-19"></a>      └─ 使用 KV Cache + 计算 "you" 的 KV
+</span><span id="__span-15-20"><a href="#__codelineno-15-20" id="__codelineno-15-20" name="__codelineno-15-20"></a>      └─ 提取 "you" 的 logits
+</span><span id="__span-15-21"><a href="#__codelineno-15-21" id="__codelineno-15-21" name="__codelineno-15-21"></a>
+</span><span id="__span-15-22"><a href="#__codelineno-15-22" id="__codelineno-15-22" name="__codelineno-15-22"></a>输出：采样生成 " doing"
+</span><span id="__span-15-23"><a href="#__codelineno-15-23" id="__codelineno-15-23" name="__codelineno-15-23"></a>
+</span><span id="__span-15-24"><a href="#__codelineno-15-24" id="__codelineno-15-24" name="__codelineno-15-24"></a>═══════════════════════════════════════════════════════════
+</span><span id="__span-15-25"><a href="#__codelineno-15-25" id="__codelineno-15-25" name="__codelineno-15-25"></a>
+</span><span id="__span-15-26"><a href="#__codelineno-15-26" id="__codelineno-15-26" name="__codelineno-15-26"></a>Step 3 - Decode (第 2 次):
+</span><span id="__span-15-27"><a href="#__codelineno-15-27" id="__codelineno-15-27" name="__codelineno-15-27"></a>─────────────────────────────────────────────────────────
+</span><span id="__span-15-28"><a href="#__codelineno-15-28" id="__codelineno-15-28" name="__codelineno-15-28"></a>输入：[" doing"]
+</span><span id="__span-15-29"><a href="#__codelineno-15-29" id="__codelineno-15-29" name="__codelineno-15-29"></a>      └─ 使用 KV Cache + 计算 " doing" 的 KV
+</span><span id="__span-15-30"><a href="#__codelineno-15-30" id="__codelineno-15-30" name="__codelineno-15-30"></a>      └─ 提取 " doing" 的 logits
+</span><span id="__span-15-31"><a href="#__codelineno-15-31" id="__codelineno-15-31" name="__codelineno-15-31"></a>
+</span><span id="__span-15-32"><a href="#__codelineno-15-32" id="__codelineno-15-32" name="__codelineno-15-32"></a>输出：采样生成 " today"
+</span><span id="__span-15-33"><a href="#__codelineno-15-33" id="__codelineno-15-33" name="__codelineno-15-33"></a>
+</span><span id="__span-15-34"><a href="#__codelineno-15-34" id="__codelineno-15-34" name="__codelineno-15-34"></a>═══════════════════════════════════════════════════════════
+</span><span id="__span-15-35"><a href="#__codelineno-15-35" id="__codelineno-15-35" name="__codelineno-15-35"></a>
+</span><span id="__span-15-36"><a href="#__codelineno-15-36" id="__codelineno-15-36" name="__codelineno-15-36"></a>Step 4 - Decode (第 3 次):
+</span><span id="__span-15-37"><a href="#__codelineno-15-37" id="__codelineno-15-37" name="__codelineno-15-37"></a>─────────────────────────────────────────────────────────
+</span><span id="__span-15-38"><a href="#__codelineno-15-38" id="__codelineno-15-38" name="__codelineno-15-38"></a>输入：[" today"]
+</span><span id="__span-15-39"><a href="#__codelineno-15-39" id="__codelineno-15-39" name="__codelineno-15-39"></a>      └─ 使用 KV Cache + 计算 " today" 的 KV
+</span><span id="__span-15-40"><a href="#__codelineno-15-40" id="__codelineno-15-40" name="__codelineno-15-40"></a>      └─ 提取 " today" 的 logits
+</span><span id="__span-15-41"><a href="#__codelineno-15-41" id="__codelineno-15-41" name="__codelineno-15-41"></a>
+</span><span id="__span-15-42"><a href="#__codelineno-15-42" id="__codelineno-15-42" name="__codelineno-15-42"></a>输出：采样生成 "&lt;EOS&gt;" (结束)
+</span><span id="__span-15-43"><a href="#__codelineno-15-43" id="__codelineno-15-43" name="__codelineno-15-43"></a>
+</span><span id="__span-15-44"><a href="#__codelineno-15-44" id="__codelineno-15-44" name="__codelineno-15-44"></a>═══════════════════════════════════════════════════════════
+</span><span id="__span-15-45"><a href="#__codelineno-15-45" id="__codelineno-15-45" name="__codelineno-15-45"></a>
+</span><span id="__span-15-46"><a href="#__codelineno-15-46" id="__codelineno-15-46" name="__codelineno-15-46"></a>最终输出："you doing today"
+</span><span id="__span-15-47"><a href="#__codelineno-15-47" id="__codelineno-15-47" name="__codelineno-15-47"></a>完整响应："Hello, how are you doing today"
+</span></code></pre></div>
+<h4 id="_5">为什么这样设计？<a class="headerlink" href="#_5" title="Permanent link">¶</a></h4>
+<p><strong>1. 节省计算资源</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-16-1"><a href="#__codelineno-16-1" id="__codelineno-16-1" name="__codelineno-16-1"></a><span class="c1"># 假设 prompt 有 100 个 token</span>
+</span><span id="__span-16-2"><a href="#__codelineno-16-2" id="__codelineno-16-2" name="__codelineno-16-2"></a>
+</span><span id="__span-16-3"><a href="#__codelineno-16-3" id="__codelineno-16-3" name="__codelineno-16-3"></a><span class="c1"># ❌ 低效做法：计算所有 token 的 logits</span>
+</span><span id="__span-16-4"><a href="#__codelineno-16-4" id="__codelineno-16-4" name="__codelineno-16-4"></a><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">):</span>
+</span><span id="__span-16-5"><a href="#__codelineno-16-5" id="__codelineno-16-5" name="__codelineno-16-5"></a>    <span class="n">logits</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span><span class="n">hidden_states</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">weight</span><span class="p">)</span>  <span class="c1"># 100 次矩阵乘法</span>
+</span><span id="__span-16-6"><a href="#__codelineno-16-6" id="__codelineno-16-6" name="__codelineno-16-6"></a><span class="c1"># 只有最后 1 个 logits 有用，前 99 次计算浪费</span>
+</span><span id="__span-16-7"><a href="#__codelineno-16-7" id="__codelineno-16-7" name="__codelineno-16-7"></a>
+</span><span id="__span-16-8"><a href="#__codelineno-16-8" id="__codelineno-16-8" name="__codelineno-16-8"></a><span class="c1"># ✅ 高效做法：只计算最后一个 token 的 logits</span>
+</span><span id="__span-16-9"><a href="#__codelineno-16-9" id="__codelineno-16-9" name="__codelineno-16-9"></a><span class="n">last_idx</span> <span class="o">=</span> <span class="mi">99</span>
+</span><span id="__span-16-10"><a href="#__codelineno-16-10" id="__codelineno-16-10" name="__codelineno-16-10"></a><span class="n">logits</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span><span class="n">hidden_states</span><span class="p">[</span><span class="n">last_idx</span><span class="p">],</span> <span class="n">weight</span><span class="p">)</span>  <span class="c1"># 1 次矩阵乘法</span>
+</span><span id="__span-16-11"><a href="#__codelineno-16-11" id="__codelineno-16-11" name="__codelineno-16-11"></a><span class="c1"># 节省 99% 的计算量</span>
+</span></code></pre></div>
+<p><strong>2. 符合自回归生成原理</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a href="#__codelineno-17-1" id="__codelineno-17-1" name="__codelineno-17-1"></a>自回归生成 (Autoregressive Generation):
+</span><span id="__span-17-2"><a href="#__codelineno-17-2" id="__codelineno-17-2" name="__codelineno-17-2"></a>P(y₁, y₂, ..., yₙ | x) = P(y₁ | x) × P(y₂ | x, y₁) × ... × P(yₙ | x, y₁...yₙ₋₁)
+</span><span id="__span-17-3"><a href="#__codelineno-17-3" id="__codelineno-17-3" name="__codelineno-17-3"></a>
+</span><span id="__span-17-4"><a href="#__codelineno-17-4" id="__codelineno-17-4" name="__codelineno-17-4"></a>每次只生成一个 token，条件是所有之前的 token。
+</span><span id="__span-17-5"><a href="#__codelineno-17-5" id="__codelineno-17-5" name="__codelineno-17-5"></a>因此只需要最后一个 token 的状态来预测下一个 token。
+</span></code></pre></div>
+<p><strong>3. KV Cache 已经包含所有信息</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a href="#__codelineno-18-1" id="__codelineno-18-1" name="__codelineno-18-1"></a>KV Cache 的作用:
+</span><span id="__span-18-2"><a href="#__codelineno-18-2" id="__codelineno-18-2" name="__codelineno-18-2"></a>- 存储所有历史 token 的 K 和 V
+</span><span id="__span-18-3"><a href="#__codelineno-18-3" id="__codelineno-18-3" name="__codelineno-18-3"></a>- 新 token 的 Attention 可以访问所有历史信息
+</span><span id="__span-18-4"><a href="#__codelineno-18-4" id="__codelineno-18-4" name="__codelineno-18-4"></a>- 因此只需要最后一个 token 的隐藏状态即可
+</span><span id="__span-18-5"><a href="#__codelineno-18-5" id="__codelineno-18-5" name="__codelineno-18-5"></a>
+</span><span id="__span-18-6"><a href="#__codelineno-18-6" id="__codelineno-18-6" name="__codelineno-18-6"></a>隐藏状态 → KV Cache → Attention → 下一个 token
+</span><span id="__span-18-7"><a href="#__codelineno-18-7" id="__codelineno-18-7" name="__codelineno-18-7"></a>    │                            ▲
+</span><span id="__span-18-8"><a href="#__codelineno-18-8" id="__codelineno-18-8" name="__codelineno-18-8"></a>    └────────────────────────────┘
+</span><span id="__span-18-9"><a href="#__codelineno-18-9" id="__codelineno-18-9" name="__codelineno-18-9"></a>         最后一个 token 足够
+</span></code></pre></div>
+<h3 id="36-gather">3.6 Gather 操作详解<a class="headerlink" href="#36-gather" title="Permanent link">¶</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-19-1"><a href="#__codelineno-19-1" id="__codelineno-19-1" name="__codelineno-19-1"></a><span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp_size</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+</span><span id="__span-19-2"><a href="#__codelineno-19-2" id="__codelineno-19-2" name="__codelineno-19-2"></a>    <span class="c1"># rank=0 准备接收缓冲区</span>
+</span><span id="__span-19-3"><a href="#__codelineno-19-3" id="__codelineno-19-3" name="__codelineno-19-3"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span id="__span-19-4"><a href="#__codelineno-19-4" id="__codelineno-19-4" name="__codelineno-19-4"></a>        <span class="n">all_logits</span> <span class="o">=</span> <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tp_size</span><span class="p">)]</span>
+</span><span id="__span-19-5"><a href="#__codelineno-19-5" id="__codelineno-19-5" name="__codelineno-19-5"></a>    <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-19-6"><a href="#__codelineno-19-6" id="__codelineno-19-6" name="__codelineno-19-6"></a>        <span class="n">all_logits</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-19-7"><a href="#__codelineno-19-7" id="__codelineno-19-7" name="__codelineno-19-7"></a>
+</span><span id="__span-19-8"><a href="#__codelineno-19-8" id="__codelineno-19-8" name="__codelineno-19-8"></a>    <span class="c1"># Gather: 所有 GPU 的 logits 汇聚到 rank=0</span>
+</span><span id="__span-19-9"><a href="#__codelineno-19-9" id="__codelineno-19-9" name="__codelineno-19-9"></a>    <span class="n">dist</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">all_logits</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-19-10"><a href="#__codelineno-19-10" id="__codelineno-19-10" name="__codelineno-19-10"></a>
+</span><span id="__span-19-11"><a href="#__codelineno-19-11" id="__codelineno-19-11" name="__codelineno-19-11"></a>    <span class="c1"># rank=0 拼接所有 logits</span>
+</span><span id="__span-19-12"><a href="#__codelineno-19-12" id="__codelineno-19-12" name="__codelineno-19-12"></a>    <span class="n">logits</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">all_logits</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tp_rank</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p><strong>图示</strong>：
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a href="#__codelineno-20-1" id="__codelineno-20-1" name="__codelineno-20-1"></a>Gather 操作 (tp_size=4):
+</span><span id="__span-20-2"><a href="#__codelineno-20-2" id="__codelineno-20-2" name="__codelineno-20-2"></a>
+</span><span id="__span-20-3"><a href="#__codelineno-20-3" id="__codelineno-20-3" name="__codelineno-20-3"></a>GPU 0 (tp_rank=0):
+</span><span id="__span-20-4"><a href="#__codelineno-20-4" id="__codelineno-20-4" name="__codelineno-20-4"></a>┌─────────────────────────────────────┐
+</span><span id="__span-20-5"><a href="#__codelineno-20-5" id="__codelineno-20-5" name="__codelineno-20-5"></a>│ logits_0 = linear(x, weight_0)      │
+</span><span id="__span-20-6"><a href="#__codelineno-20-6" id="__codelineno-20-6" name="__codelineno-20-6"></a>│ shape: [num_tokens, 8000]           │
+</span><span id="__span-20-7"><a href="#__codelineno-20-7" id="__codelineno-20-7" name="__codelineno-20-7"></a>│                                     │
+</span><span id="__span-20-8"><a href="#__codelineno-20-8" id="__codelineno-20-8" name="__codelineno-20-8"></a>│ 准备 all_logits 缓冲区:              │
+</span><span id="__span-20-9"><a href="#__codelineno-20-9" id="__codelineno-20-9" name="__codelineno-20-9"></a>│ [empty_0, empty_1, empty_2, empty_3]│
+</span><span id="__span-20-10"><a href="#__codelineno-20-10" id="__codelineno-20-10" name="__codelineno-20-10"></a>│                                     │
+</span><span id="__span-20-11"><a href="#__codelineno-20-11" id="__codelineno-20-11" name="__codelineno-20-11"></a>│ dist.gather() 后:                   │
+</span><span id="__span-20-12"><a href="#__codelineno-20-12" id="__codelineno-20-12" name="__codelineno-20-12"></a>│ all_logits = [logits_0, logits_1,   │
+</span><span id="__span-20-13"><a href="#__codelineno-20-13" id="__codelineno-20-13" name="__codelineno-20-13"></a>│               logits_2, logits_3]   │
+</span><span id="__span-20-14"><a href="#__codelineno-20-14" id="__codelineno-20-14" name="__codelineno-20-14"></a>│                                     │
+</span><span id="__span-20-15"><a href="#__codelineno-20-15" id="__codelineno-20-15" name="__codelineno-20-15"></a>│ 拼接后:                             │
+</span><span id="__span-20-16"><a href="#__codelineno-20-16" id="__codelineno-20-16" name="__codelineno-20-16"></a>│ logits = cat(all_logits, -1)        │
+</span><span id="__span-20-17"><a href="#__codelineno-20-17" id="__codelineno-20-17" name="__codelineno-20-17"></a>│ shape: [num_tokens, 32000]          │
+</span><span id="__span-20-18"><a href="#__codelineno-20-18" id="__codelineno-20-18" name="__codelineno-20-18"></a>└─────────────────────────────────────┘
+</span><span id="__span-20-19"><a href="#__codelineno-20-19" id="__codelineno-20-19" name="__codelineno-20-19"></a>
+</span><span id="__span-20-20"><a href="#__codelineno-20-20" id="__codelineno-20-20" name="__codelineno-20-20"></a>GPU 1 (tp_rank=1):
+</span><span id="__span-20-21"><a href="#__codelineno-20-21" id="__codelineno-20-21" name="__codelineno-20-21"></a>┌─────────────────────────────────────┐
+</span><span id="__span-20-22"><a href="#__codelineno-20-22" id="__codelineno-20-22" name="__codelineno-20-22"></a>│ logits_1 = linear(x, weight_1)      │
+</span><span id="__span-20-23"><a href="#__codelineno-20-23" id="__codelineno-20-23" name="__codelineno-20-23"></a>│ shape: [num_tokens, 8000]           │
+</span><span id="__span-20-24"><a href="#__codelineno-20-24" id="__codelineno-20-24" name="__codelineno-20-24"></a>│                                     │
+</span><span id="__span-20-25"><a href="#__codelineno-20-25" id="__codelineno-20-25" name="__codelineno-20-25"></a>│ all_logits = None                   │
+</span><span id="__span-20-26"><a href="#__codelineno-20-26" id="__codelineno-20-26" name="__codelineno-20-26"></a>│                                     │
+</span><span id="__span-20-27"><a href="#__codelineno-20-27" id="__codelineno-20-27" name="__codelineno-20-27"></a>│ dist.gather() 发送 logits_1 到 GPU 0 │
+</span><span id="__span-20-28"><a href="#__codelineno-20-28" id="__codelineno-20-28" name="__codelineno-20-28"></a>│                                     │
+</span><span id="__span-20-29"><a href="#__codelineno-20-29" id="__codelineno-20-29" name="__codelineno-20-29"></a>│ 返回：logits = None                 │
+</span><span id="__span-20-30"><a href="#__codelineno-20-30" id="__codelineno-20-30" name="__codelineno-20-30"></a>└─────────────────────────────────────┘
+</span><span id="__span-20-31"><a href="#__codelineno-20-31" id="__codelineno-20-31" name="__codelineno-20-31"></a>
+</span><span id="__span-20-32"><a href="#__codelineno-20-32" id="__codelineno-20-32" name="__codelineno-20-32"></a>GPU 2 (tp_rank=2):
+</span><span id="__span-20-33"><a href="#__codelineno-20-33" id="__codelineno-20-33" name="__codelineno-20-33"></a>┌─────────────────────────────────────┐
+</span><span id="__span-20-34"><a href="#__codelineno-20-34" id="__codelineno-20-34" name="__codelineno-20-34"></a>│ logits_2 = linear(x, weight_2)      │
+</span><span id="__span-20-35"><a href="#__codelineno-20-35" id="__codelineno-20-35" name="__codelineno-20-35"></a>│ shape: [num_tokens, 8000]           │
+</span><span id="__span-20-36"><a href="#__codelineno-20-36" id="__codelineno-20-36" name="__codelineno-20-36"></a>│                                     │
+</span><span id="__span-20-37"><a href="#__codelineno-20-37" id="__codelineno-20-37" name="__codelineno-20-37"></a>│ dist.gather() 发送 logits_2 到 GPU 0 │
+</span><span id="__span-20-38"><a href="#__codelineno-20-38" id="__codelineno-20-38" name="__codelineno-20-38"></a>│                                     │
+</span><span id="__span-20-39"><a href="#__codelineno-20-39" id="__codelineno-20-39" name="__codelineno-20-39"></a>│ 返回：logits = None                 │
+</span><span id="__span-20-40"><a href="#__codelineno-20-40" id="__codelineno-20-40" name="__codelineno-20-40"></a>└─────────────────────────────────────┘
+</span><span id="__span-20-41"><a href="#__codelineno-20-41" id="__codelineno-20-41" name="__codelineno-20-41"></a>
+</span><span id="__span-20-42"><a href="#__codelineno-20-42" id="__codelineno-20-42" name="__codelineno-20-42"></a>GPU 3 (tp_rank=3):
+</span><span id="__span-20-43"><a href="#__codelineno-20-43" id="__codelineno-20-43" name="__codelineno-20-43"></a>┌─────────────────────────────────────┐
+</span><span id="__span-20-44"><a href="#__codelineno-20-44" id="__codelineno-20-44" name="__codelineno-20-44"></a>│ logits_3 = linear(x, weight_3)      │
+</span><span id="__span-20-45"><a href="#__codelineno-20-45" id="__codelineno-20-45" name="__codelineno-20-45"></a>│ shape: [num_tokens, 8000]           │
+</span><span id="__span-20-46"><a href="#__codelineno-20-46" id="__codelineno-20-46" name="__codelineno-20-46"></a>│                                     │
+</span><span id="__span-20-47"><a href="#__codelineno-20-47" id="__codelineno-20-47" name="__codelineno-20-47"></a>│ dist.gather() 发送 logits_3 到 GPU 0 │
+</span><span id="__span-20-48"><a href="#__codelineno-20-48" id="__codelineno-20-48" name="__codelineno-20-48"></a>│                                     │
+</span><span id="__span-20-49"><a href="#__codelineno-20-49" id="__codelineno-20-49" name="__codelineno-20-49"></a>│ 返回：logits = None                 │
+</span><span id="__span-20-50"><a href="#__codelineno-20-50" id="__codelineno-20-50" name="__codelineno-20-50"></a>└─────────────────────────────────────┘
+</span><span id="__span-20-51"><a href="#__codelineno-20-51" id="__codelineno-20-51" name="__codelineno-20-51"></a>
+</span><span id="__span-20-52"><a href="#__codelineno-20-52" id="__codelineno-20-52" name="__codelineno-20-52"></a>最终结果:
+</span><span id="__span-20-53"><a href="#__codelineno-20-53" id="__codelineno-20-53" name="__codelineno-20-53"></a>GPU 0: logits.shape = [num_tokens, 32000]  (完整词汇表)
+</span><span id="__span-20-54"><a href="#__codelineno-20-54" id="__codelineno-20-54" name="__codelineno-20-54"></a>GPU 1/2/3: logits = None
+</span></code></pre></div></p>
+<hr/>
+<h2 id="_6">四、通信原语对比<a class="headerlink" href="#_6" title="Permanent link">¶</a></h2>
+<h3 id="41-allreduce-vocabparallelembedding">4.1 AllReduce (VocabParallelEmbedding)<a class="headerlink" href="#41-allreduce-vocabparallelembedding" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a href="#__codelineno-21-1" id="__codelineno-21-1" name="__codelineno-21-1"></a>AllReduce 操作:
+</span><span id="__span-21-2"><a href="#__codelineno-21-2" id="__codelineno-21-2" name="__codelineno-21-2"></a>GPU 0: [y0, 0,  0,  0]  ─┐
+</span><span id="__span-21-3"><a href="#__codelineno-21-3" id="__codelineno-21-3" name="__codelineno-21-3"></a>GPU 1: [0,  y1, 0,  0]  ─┼── AllReduce ──► [y0, y1, y2, y3] (所有 GPU 相同)
+</span><span id="__span-21-4"><a href="#__codelineno-21-4" id="__codelineno-21-4" name="__codelineno-21-4"></a>GPU 2: [0,  0,  y2, 0]  ─┤
+</span><span id="__span-21-5"><a href="#__codelineno-21-5" id="__codelineno-21-5" name="__codelineno-21-5"></a>GPU 3: [0,  0,  0,  y3] ─┘
+</span><span id="__span-21-6"><a href="#__codelineno-21-6" id="__codelineno-21-6" name="__codelineno-21-6"></a>
+</span><span id="__span-21-7"><a href="#__codelineno-21-7" id="__codelineno-21-7" name="__codelineno-21-7"></a>特点:
+</span><span id="__span-21-8"><a href="#__codelineno-21-8" id="__codelineno-21-8" name="__codelineno-21-8"></a>- 所有 GPU 得到相同的结果
+</span><span id="__span-21-9"><a href="#__codelineno-21-9" id="__codelineno-21-9" name="__codelineno-21-9"></a>- 结果是所有 GPU 输入的和 (元素级相加)
+</span><span id="__span-21-10"><a href="#__codelineno-21-10" id="__codelineno-21-10" name="__codelineno-21-10"></a>- 用于 Embedding 层，因为所有 GPU 都需要完整的嵌入结果
+</span></code></pre></div>
+<h3 id="42-gather-parallellmhead">4.2 Gather (ParallelLMHead)<a class="headerlink" href="#42-gather-parallellmhead" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a href="#__codelineno-22-1" id="__codelineno-22-1" name="__codelineno-22-1"></a>Gather 操作:
+</span><span id="__span-22-2"><a href="#__codelineno-22-2" id="__codelineno-22-2" name="__codelineno-22-2"></a>GPU 0: logits_0 ─┐
+</span><span id="__span-22-3"><a href="#__codelineno-22-3" id="__codelineno-22-3" name="__codelineno-22-3"></a>GPU 1: logits_1 ─┼── Gather(0) ──► GPU 0: [logits_0, logits_1, logits_2, logits_3]
+</span><span id="__span-22-4"><a href="#__codelineno-22-4" id="__codelineno-22-4" name="__codelineno-22-4"></a>GPU 2: logits_2 ─┤                 GPU 1/2/3: None
+</span><span id="__span-22-5"><a href="#__codelineno-22-5" id="__codelineno-22-5" name="__codelineno-22-5"></a>GPU 3: logits_3 ─┘
+</span><span id="__span-22-6"><a href="#__codelineno-22-6" id="__codelineno-22-6" name="__codelineno-22-6"></a>
+</span><span id="__span-22-7"><a href="#__codelineno-22-7" id="__codelineno-22-7" name="__codelineno-22-7"></a>特点:
+</span><span id="__span-22-8"><a href="#__codelineno-22-8" id="__codelineno-22-8" name="__codelineno-22-8"></a>- 只有目标 GPU (rank=0) 得到完整结果
+</span><span id="__span-22-9"><a href="#__codelineno-22-9" id="__codelineno-22-9" name="__codelineno-22-9"></a>- 其他 GPU 返回 None
+</span><span id="__span-22-10"><a href="#__codelineno-22-10" id="__codelineno-22-10" name="__codelineno-22-10"></a>- 用于 LM Head，因为只有 rank=0 需要完整 logits 进行采样
+</span></code></pre></div>
+<h3 id="43">4.3 为什么使用不同的通信方式？<a class="headerlink" href="#43" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>层面</th>
+<th>通信方式</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>VocabParallelEmbedding</strong></td>
+<td>AllReduce</td>
+<td>所有 GPU 都需要完整的嵌入结果用于后续 Decoder 层计算</td>
+</tr>
+<tr>
+<td><strong>ParallelLMHead</strong></td>
+<td>Gather</td>
+<td>只有 rank=0 需要完整 logits 用于采样，减少通信开销</td>
+</tr>
+</tbody>
+</table>
+<hr/>
+<h2 id="_7">五、完整数据流图<a class="headerlink" href="#_7" title="Permanent link">¶</a></h2>
+<pre class="mermaid"><code>flowchart TB
+    subgraph 输入层
+        InputIds[input_ids&lt;br/&gt;全局词汇索引]
+    end
+
+    subgraph VocabParallelEmbedding
+        subgraph GPU0_Emb["GPU 0 (tp_rank=0)"]
+            Mask0[创建掩码]
+            Convert0[索引转换]
+            Embed0[嵌入查找]
+            ApplyMask0[应用掩码]
+        end
+
+        subgraph GPU1_Emb["GPU 1 (tp_rank=1)"]
+            Mask1[创建掩码]
+            Convert1[索引转换]
+            Embed1[嵌入查找]
+            ApplyMask1[应用掩码]
+        end
+
+        subgraph GPU2_Emb["GPU 2 (tp_rank=2)"]
+            Mask2[创建掩码]
+            Convert2[索引转换]
+            Embed2[嵌入查找]
+            ApplyMask2[应用掩码]
+        end
+
+        subgraph GPU3_Emb["GPU 3 (tp_rank=3)"]
+            Mask3[创建掩码]
+            Convert3[索引转换]
+            Embed3[嵌入查找]
+            ApplyMask3[应用掩码]
+        end
+
+        AllReduce[AllReduce: 结果相加]
+    end
+
+    subgraph Decoder 层
+        Decoder[Qwen3DecoderLayer × N]
+    end
+
+    subgraph ParallelLMHead
+        subgraph GPU0_LM["GPU 0 (tp_rank=0)"]
+            PrefillCheck0{is_prefill?}
+            Extract0[提取最后 token]
+            Linear0[Linear: hidden→logits]
+            PrepareBuf[准备接收缓冲区]
+            Gather0[Gather 操作]
+            Cat0[拼接 logits]
+        end
+
+        subgraph GPU1_LM["GPU 1 (tp_rank=1)"]
+            PrefillCheck1{is_prefill?}
+            Extract1[提取最后 token]
+            Linear1[Linear: hidden→logits]
+            Gather1[Gather 发送]
+        end
+
+        subgraph GPU2_LM["GPU 2 (tp_rank=2)"]
+            PrefillCheck2{is_prefill?}
+            Extract2[提取最后 token]
+            Linear2[Linear: hidden→logits]
+            Gather2[Gather 发送]
+        end
+
+        subgraph GPU3_LM["GPU 3 (tp_rank=3)"]
+            PrefillCheck3{is_prefill?}
+            Extract3[提取最后 token]
+            Linear3[Linear: hidden→logits]
+            Gather3[Gather 发送]
+        end
+    end
+
+    subgraph 输出
+        Output0["GPU 0: logits&lt;br/&gt;[num_seqs, vocab_size]"]
+        Output1["GPU 1/2/3: None"]
+    end
+
+    InputIds --&gt; Mask0
+    InputIds --&gt; Mask1
+    InputIds --&gt; Mask2
+    InputIds --&gt; Mask3
+
+    Mask0 --&gt; Convert0 --&gt; Embed0 --&gt; ApplyMask0 --&gt; AllReduce
+    Mask1 --&gt; Convert1 --&gt; Embed1 --&gt; ApplyMask1 --&gt; AllReduce
+    Mask2 --&gt; Convert2 --&gt; Embed2 --&gt; ApplyMask2 --&gt; AllReduce
+    Mask3 --&gt; Convert3 --&gt; Embed3 --&gt; ApplyMask3 --&gt; AllReduce
+
+    AllReduce --&gt; Decoder
+    Decoder --&gt; PrefillCheck0
+    Decoder --&gt; PrefillCheck1
+    Decoder --&gt; PrefillCheck2
+    Decoder --&gt; PrefillCheck3
+
+    PrefillCheck0 --&gt;|Yes| Extract0
+    PrefillCheck0 --&gt;|No| Linear0
+    Extract0 --&gt; Linear0
+    Linear0 --&gt; PrepareBuf --&gt; Gather0 --&gt; Cat0 --&gt; Output0
+
+    PrefillCheck1 --&gt;|Yes| Extract1
+    PrefillCheck1 --&gt;|No| Linear1
+    Extract1 --&gt; Linear1 --&gt; Gather1
+
+    PrefillCheck2 --&gt;|Yes| Extract2
+    PrefillCheck2 --&gt;|No| Linear2
+    Extract2 --&gt; Linear2 --&gt; Gather2
+
+    PrefillCheck3 --&gt;|Yes| Extract3
+    PrefillCheck3 --&gt;|No| Linear3
+    Extract3 --&gt; Linear3 --&gt; Gather3
+
+    Gather1 -.-&gt; Gather0
+    Gather2 -.-&gt; Gather0
+    Gather3 -.-&gt; Gather0</code></pre>
+<hr/>
+<h2 id="_8">六、继承关系<a class="headerlink" href="#_8" title="Permanent link">¶</a></h2>
+<h3 id="61">6.1 类继承图<a class="headerlink" href="#61" title="Permanent link">¶</a></h3>
+<pre class="mermaid"><code>classDiagram
+    class nn.Module {
+        +train()
+        +eval()
+        +to()
+        +cuda()
+    }
+
+    class VocabParallelEmbedding {
+        +tp_rank: int
+        +tp_size: int
+        +num_embeddings: int
+        +num_embeddings_per_partition: int
+        +vocab_start_idx: int
+        +vocab_end_idx: int
+        +weight: Parameter
+        +weight_loader()
+        +forward()
+    }
+
+    class ParallelLMHead {
+        +forward()
+    }
+
+    nn.Module &lt;|-- VocabParallelEmbedding
+    VocabParallelEmbedding &lt;|-- ParallelLMHead</code></pre>
+<h3 id="62">6.2 属性继承<a class="headerlink" href="#62" title="Permanent link">¶</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-23-1"><a href="#__codelineno-23-1" id="__codelineno-23-1" name="__codelineno-23-1"></a><span class="c1"># VocabParallelEmbedding 的属性 (全部继承给 ParallelLMHead)</span>
+</span><span id="__span-23-2"><a href="#__codelineno-23-2" id="__codelineno-23-2" name="__codelineno-23-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">VocabParallelEmbedding</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span><span id="__span-23-3"><a href="#__codelineno-23-3" id="__codelineno-23-3" name="__codelineno-23-3"></a>    <span class="n">tp_rank</span>                         <span class="c1"># 当前 GPU 排名</span>
+</span><span id="__span-23-4"><a href="#__codelineno-23-4" id="__codelineno-23-4" name="__codelineno-23-4"></a>    <span class="n">tp_size</span>                         <span class="c1"># GPU 总数</span>
+</span><span id="__span-23-5"><a href="#__codelineno-23-5" id="__codelineno-23-5" name="__codelineno-23-5"></a>    <span class="n">num_embeddings</span>                  <span class="c1"># 完整词汇表大小</span>
+</span><span id="__span-23-6"><a href="#__codelineno-23-6" id="__codelineno-23-6" name="__codelineno-23-6"></a>    <span class="n">num_embeddings_per_partition</span>    <span class="c1"># 当前 GPU 存储的词汇数</span>
+</span><span id="__span-23-7"><a href="#__codelineno-23-7" id="__codelineno-23-7" name="__codelineno-23-7"></a>    <span class="n">vocab_start_idx</span>                 <span class="c1"># 当前 GPU 负责的起始索引</span>
+</span><span id="__span-23-8"><a href="#__codelineno-23-8" id="__codelineno-23-8" name="__codelineno-23-8"></a>    <span class="n">vocab_end_idx</span>                   <span class="c1"># 当前 GPU 负责的结束索引</span>
+</span><span id="__span-23-9"><a href="#__codelineno-23-9" id="__codelineno-23-9" name="__codelineno-23-9"></a>    <span class="n">weight</span>                          <span class="c1"># 嵌入权重矩阵</span>
+</span><span id="__span-23-10"><a href="#__codelineno-23-10" id="__codelineno-23-10" name="__codelineno-23-10"></a>    <span class="n">weight_loader</span><span class="p">()</span>                 <span class="c1"># 权重加载方法</span>
+</span><span id="__span-23-11"><a href="#__codelineno-23-11" id="__codelineno-23-11" name="__codelineno-23-11"></a>
+</span><span id="__span-23-12"><a href="#__codelineno-23-12" id="__codelineno-23-12" name="__codelineno-23-12"></a><span class="c1"># ParallelLMHead 继承所有上述属性</span>
+</span><span id="__span-23-13"><a href="#__codelineno-23-13" id="__codelineno-23-13" name="__codelineno-23-13"></a><span class="k">class</span><span class="w"> </span><span class="nc">ParallelLMHead</span><span class="p">(</span><span class="n">VocabParallelEmbedding</span><span class="p">):</span>
+</span><span id="__span-23-14"><a href="#__codelineno-23-14" id="__codelineno-23-14" name="__codelineno-23-14"></a>    <span class="c1"># 共享相同的 weight 矩阵</span>
+</span><span id="__span-23-15"><a href="#__codelineno-23-15" id="__codelineno-23-15" name="__codelineno-23-15"></a>    <span class="c1"># 共享相同的 vocab 切分策略</span>
+</span><span id="__span-23-16"><a href="#__codelineno-23-16" id="__codelineno-23-16" name="__codelineno-23-16"></a>    <span class="c1"># 只是 forward() 方法不同</span>
+</span></code></pre></div>
+<hr/>
+<h2 id="_9">七、使用示例<a class="headerlink" href="#_9" title="Permanent link">¶</a></h2>
+<h3 id="71">7.1 基本使用<a class="headerlink" href="#71" title="Permanent link">¶</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-24-1"><a href="#__codelineno-24-1" id="__codelineno-24-1" name="__codelineno-24-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+</span><span id="__span-24-2"><a href="#__codelineno-24-2" id="__codelineno-24-2" name="__codelineno-24-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch.distributed</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dist</span>
+</span><span id="__span-24-3"><a href="#__codelineno-24-3" id="__codelineno-24-3" name="__codelineno-24-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">nanovllm.layers.embed_head</span><span class="w"> </span><span class="kn">import</span> <span class="n">VocabParallelEmbedding</span><span class="p">,</span> <span class="n">ParallelLMHead</span>
+</span><span id="__span-24-4"><a href="#__codelineno-24-4" id="__codelineno-24-4" name="__codelineno-24-4"></a>
+</span><span id="__span-24-5"><a href="#__codelineno-24-5" id="__codelineno-24-5" name="__codelineno-24-5"></a><span class="c1"># 初始化分布式环境</span>
+</span><span id="__span-24-6"><a href="#__codelineno-24-6" id="__codelineno-24-6" name="__codelineno-24-6"></a><span class="n">dist</span><span class="o">.</span><span class="n">init_process_group</span><span class="p">(</span><span class="n">backend</span><span class="o">=</span><span class="s2">"nccl"</span><span class="p">)</span>
+</span><span id="__span-24-7"><a href="#__codelineno-24-7" id="__codelineno-24-7" name="__codelineno-24-7"></a>
+</span><span id="__span-24-8"><a href="#__codelineno-24-8" id="__codelineno-24-8" name="__codelineno-24-8"></a><span class="c1"># 配置</span>
+</span><span id="__span-24-9"><a href="#__codelineno-24-9" id="__codelineno-24-9" name="__codelineno-24-9"></a><span class="n">vocab_size</span> <span class="o">=</span> <span class="mi">32000</span>
+</span><span id="__span-24-10"><a href="#__codelineno-24-10" id="__codelineno-24-10" name="__codelineno-24-10"></a><span class="n">hidden_size</span> <span class="o">=</span> <span class="mi">4096</span>
+</span><span id="__span-24-11"><a href="#__codelineno-24-11" id="__codelineno-24-11" name="__codelineno-24-11"></a><span class="n">batch_size</span> <span class="o">=</span> <span class="mi">2</span>
+</span><span id="__span-24-12"><a href="#__codelineno-24-12" id="__codelineno-24-12" name="__codelineno-24-12"></a><span class="n">seq_len</span> <span class="o">=</span> <span class="mi">100</span>
+</span><span id="__span-24-13"><a href="#__codelineno-24-13" id="__codelineno-24-13" name="__codelineno-24-13"></a>
+</span><span id="__span-24-14"><a href="#__codelineno-24-14" id="__codelineno-24-14" name="__codelineno-24-14"></a><span class="c1"># ========== VocabParallelEmbedding ==========</span>
+</span><span id="__span-24-15"><a href="#__codelineno-24-15" id="__codelineno-24-15" name="__codelineno-24-15"></a><span class="n">emb</span> <span class="o">=</span> <span class="n">VocabParallelEmbedding</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">)</span>
+</span><span id="__span-24-16"><a href="#__codelineno-24-16" id="__codelineno-24-16" name="__codelineno-24-16"></a>
+</span><span id="__span-24-17"><a href="#__codelineno-24-17" id="__codelineno-24-17" name="__codelineno-24-17"></a><span class="c1"># 输入：全局词汇索引</span>
+</span><span id="__span-24-18"><a href="#__codelineno-24-18" id="__codelineno-24-18" name="__codelineno-24-18"></a><span class="n">input_ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">,</span> <span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">))</span>
+</span><span id="__span-24-19"><a href="#__codelineno-24-19" id="__codelineno-24-19" name="__codelineno-24-19"></a>
+</span><span id="__span-24-20"><a href="#__codelineno-24-20" id="__codelineno-24-20" name="__codelineno-24-20"></a><span class="c1"># 前向传播</span>
+</span><span id="__span-24-21"><a href="#__codelineno-24-21" id="__codelineno-24-21" name="__codelineno-24-21"></a><span class="n">embedded</span> <span class="o">=</span> <span class="n">emb</span><span class="p">(</span><span class="n">input_ids</span><span class="p">)</span>
+</span><span id="__span-24-22"><a href="#__codelineno-24-22" id="__codelineno-24-22" name="__codelineno-24-22"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Embedded shape: </span><span class="si">{</span><span class="n">embedded</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="__span-24-23"><a href="#__codelineno-24-23" id="__codelineno-24-23" name="__codelineno-24-23"></a><span class="c1"># 输出：[batch_size, seq_len, hidden_size]</span>
+</span><span id="__span-24-24"><a href="#__codelineno-24-24" id="__codelineno-24-24" name="__codelineno-24-24"></a>
+</span><span id="__span-24-25"><a href="#__codelineno-24-25" id="__codelineno-24-25" name="__codelineno-24-25"></a><span class="c1"># ========== ParallelLMHead ==========</span>
+</span><span id="__span-24-26"><a href="#__codelineno-24-26" id="__codelineno-24-26" name="__codelineno-24-26"></a><span class="n">lm_head</span> <span class="o">=</span> <span class="n">ParallelLMHead</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">)</span>
+</span><span id="__span-24-27"><a href="#__codelineno-24-27" id="__codelineno-24-27" name="__codelineno-24-27"></a>
+</span><span id="__span-24-28"><a href="#__codelineno-24-28" id="__codelineno-24-28" name="__codelineno-24-28"></a><span class="c1"># 输入：隐藏状态</span>
+</span><span id="__span-24-29"><a href="#__codelineno-24-29" id="__codelineno-24-29" name="__codelineno-24-29"></a><span class="n">hidden_states</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">seq_len</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">)</span>
+</span><span id="__span-24-30"><a href="#__codelineno-24-30" id="__codelineno-24-30" name="__codelineno-24-30"></a>
+</span><span id="__span-24-31"><a href="#__codelineno-24-31" id="__codelineno-24-31" name="__codelineno-24-31"></a><span class="c1"># 前向传播</span>
+</span><span id="__span-24-32"><a href="#__codelineno-24-32" id="__codelineno-24-32" name="__codelineno-24-32"></a><span class="n">logits</span> <span class="o">=</span> <span class="n">lm_head</span><span class="p">(</span><span class="n">hidden_states</span><span class="p">)</span>
+</span><span id="__span-24-33"><a href="#__codelineno-24-33" id="__codelineno-24-33" name="__codelineno-24-33"></a><span class="c1"># rank=0: [batch_size * seq_len, vocab_size]</span>
+</span><span id="__span-24-34"><a href="#__codelineno-24-34" id="__codelineno-24-34" name="__codelineno-24-34"></a><span class="c1"># rank&gt;0: None</span>
+</span></code></pre></div>
+<h3 id="72-qwen3">7.2 在 Qwen3 模型中的使用<a class="headerlink" href="#72-qwen3" title="Permanent link">¶</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-25-1"><a href="#__codelineno-25-1" id="__codelineno-25-1" name="__codelineno-25-1"></a><span class="c1"># nanovllm/models/qwen3.py</span>
+</span><span id="__span-25-2"><a href="#__codelineno-25-2" id="__codelineno-25-2" name="__codelineno-25-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">Qwen3Model</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span><span id="__span-25-3"><a href="#__codelineno-25-3" id="__codelineno-25-3" name="__codelineno-25-3"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
+</span><span id="__span-25-4"><a href="#__codelineno-25-4" id="__codelineno-25-4" name="__codelineno-25-4"></a>        <span class="c1"># 词嵌入层</span>
+</span><span id="__span-25-5"><a href="#__codelineno-25-5" id="__codelineno-25-5" name="__codelineno-25-5"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">embed_tokens</span> <span class="o">=</span> <span class="n">VocabParallelEmbedding</span><span class="p">(</span>
+</span><span id="__span-25-6"><a href="#__codelineno-25-6" id="__codelineno-25-6" name="__codelineno-25-6"></a>            <span class="n">config</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span> 
+</span><span id="__span-25-7"><a href="#__codelineno-25-7" id="__codelineno-25-7" name="__codelineno-25-7"></a>            <span class="n">config</span><span class="o">.</span><span class="n">hidden_size</span>
+</span><span id="__span-25-8"><a href="#__codelineno-25-8" id="__codelineno-25-8" name="__codelineno-25-8"></a>        <span class="p">)</span>
+</span><span id="__span-25-9"><a href="#__codelineno-25-9" id="__codelineno-25-9" name="__codelineno-25-9"></a>
+</span><span id="__span-25-10"><a href="#__codelineno-25-10" id="__codelineno-25-10" name="__codelineno-25-10"></a>        <span class="c1"># Decoder 层</span>
+</span><span id="__span-25-11"><a href="#__codelineno-25-11" id="__codelineno-25-11" name="__codelineno-25-11"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([</span><span class="o">...</span><span class="p">])</span>
+</span><span id="__span-25-12"><a href="#__codelineno-25-12" id="__codelineno-25-12" name="__codelineno-25-12"></a>
+</span><span id="__span-25-13"><a href="#__codelineno-25-13" id="__codelineno-25-13" name="__codelineno-25-13"></a>        <span class="c1"># 最终归一化</span>
+</span><span id="__span-25-14"><a href="#__codelineno-25-14" id="__codelineno-25-14" name="__codelineno-25-14"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">=</span> <span class="n">RMSNorm</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">)</span>
+</span><span id="__span-25-15"><a href="#__codelineno-25-15" id="__codelineno-25-15" name="__codelineno-25-15"></a>
+</span><span id="__span-25-16"><a href="#__codelineno-25-16" id="__codelineno-25-16" name="__codelineno-25-16"></a><span class="k">class</span><span class="w"> </span><span class="nc">Qwen3ForCausalLM</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span><span id="__span-25-17"><a href="#__codelineno-25-17" id="__codelineno-25-17" name="__codelineno-25-17"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
+</span><span id="__span-25-18"><a href="#__codelineno-25-18" id="__codelineno-25-18" name="__codelineno-25-18"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">Qwen3Model</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+</span><span id="__span-25-19"><a href="#__codelineno-25-19" id="__codelineno-25-19" name="__codelineno-25-19"></a>
+</span><span id="__span-25-20"><a href="#__codelineno-25-20" id="__codelineno-25-20" name="__codelineno-25-20"></a>        <span class="c1"># 语言模型输出头</span>
+</span><span id="__span-25-21"><a href="#__codelineno-25-21" id="__codelineno-25-21" name="__codelineno-25-21"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">lm_head</span> <span class="o">=</span> <span class="n">ParallelLMHead</span><span class="p">(</span>
+</span><span id="__span-25-22"><a href="#__codelineno-25-22" id="__codelineno-25-22" name="__codelineno-25-22"></a>            <span class="n">config</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span> 
+</span><span id="__span-25-23"><a href="#__codelineno-25-23" id="__codelineno-25-23" name="__codelineno-25-23"></a>            <span class="n">config</span><span class="o">.</span><span class="n">hidden_size</span>
+</span><span id="__span-25-24"><a href="#__codelineno-25-24" id="__codelineno-25-24" name="__codelineno-25-24"></a>        <span class="p">)</span>
+</span><span id="__span-25-25"><a href="#__codelineno-25-25" id="__codelineno-25-25" name="__codelineno-25-25"></a>
+</span><span id="__span-25-26"><a href="#__codelineno-25-26" id="__codelineno-25-26" name="__codelineno-25-26"></a>        <span class="c1"># 权重绑定 (可选)</span>
+</span><span id="__span-25-27"><a href="#__codelineno-25-27" id="__codelineno-25-27" name="__codelineno-25-27"></a>        <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">tie_word_embeddings</span><span class="p">:</span>
+</span><span id="__span-25-28"><a href="#__codelineno-25-28" id="__codelineno-25-28" name="__codelineno-25-28"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">lm_head</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">embed_tokens</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span>
+</span></code></pre></div>
+<hr/>
+<h2 id="_10">八、性能优化<a class="headerlink" href="#_10" title="Permanent link">¶</a></h2>
+<h3 id="81">8.1 内存优化<a class="headerlink" href="#81" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>配置</th>
+<th>每 GPU 嵌入层内存</th>
+<th>总内存</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>单 GPU (tp=1)</strong></td>
+<td>vocab×hidden×4B</td>
+<td>100%</td>
+</tr>
+<tr>
+<td><strong>双 GPU (tp=2)</strong></td>
+<td>50%</td>
+<td>100%</td>
+</tr>
+<tr>
+<td><strong>四 GPU (tp=4)</strong></td>
+<td>25%</td>
+<td>100%</td>
+</tr>
+<tr>
+<td><strong>八 GPU (tp=8)</strong></td>
+<td>12.5%</td>
+<td>100%</td>
+</tr>
+</tbody>
+</table>
+<h3 id="82">8.2 通信开销<a class="headerlink" href="#82" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>通信量</th>
+<th>频率</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AllReduce</strong></td>
+<td>hidden_size × 4B × seq_len</td>
+<td>每次 Embedding 前向</td>
+</tr>
+<tr>
+<td><strong>Gather</strong></td>
+<td>vocab_size/tp_size × 4B × num_tokens</td>
+<td>每次 LM Head 前向</td>
+</tr>
+</tbody>
+</table>
+<h3 id="83">8.3 优化建议<a class="headerlink" href="#83" title="Permanent link">¶</a></h3>
+<ol>
+<li><strong>大词汇表场景</strong>：使用更大的 tp_size 减少每 GPU 内存</li>
+<li><strong>长序列场景</strong>：注意 AllReduce 的通信开销</li>
+<li><strong>大批次场景</strong>：Gather 操作可能成为瓶颈</li>
+</ol>
+<hr/>
+<h2 id="_11">九、总结<a class="headerlink" href="#_11" title="Permanent link">¶</a></h2>
+<h3 id="91">9.1 核心设计<a class="headerlink" href="#91" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>并行策略</th>
+<th>通信方式</th>
+<th>输出分布</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>VocabParallelEmbedding</strong></td>
+<td>词汇表切分</td>
+<td>AllReduce</td>
+<td>所有 GPU 相同</td>
+</tr>
+<tr>
+<td><strong>ParallelLMHead</strong></td>
+<td>词汇表切分</td>
+<td>Gather</td>
+<td>仅 rank=0</td>
+</tr>
+</tbody>
+</table>
+<h3 id="92">9.2 关键公式<a class="headerlink" href="#92" title="Permanent link">¶</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-26-1"><a href="#__codelineno-26-1" id="__codelineno-26-1" name="__codelineno-26-1"></a><span class="c1"># 词汇表切分</span>
+</span><span id="__span-26-2"><a href="#__codelineno-26-2" id="__codelineno-26-2" name="__codelineno-26-2"></a><span class="n">partition_size</span> <span class="o">=</span> <span class="n">vocab_size</span> <span class="o">//</span> <span class="n">tp_size</span>
+</span><span id="__span-26-3"><a href="#__codelineno-26-3" id="__codelineno-26-3" name="__codelineno-26-3"></a><span class="n">start_idx</span> <span class="o">=</span> <span class="n">partition_size</span> <span class="o">*</span> <span class="n">tp_rank</span>
+</span><span id="__span-26-4"><a href="#__codelineno-26-4" id="__codelineno-26-4" name="__codelineno-26-4"></a><span class="n">end_idx</span> <span class="o">=</span> <span class="n">start_idx</span> <span class="o">+</span> <span class="n">partition_size</span>
+</span><span id="__span-26-5"><a href="#__codelineno-26-5" id="__codelineno-26-5" name="__codelineno-26-5"></a>
+</span><span id="__span-26-6"><a href="#__codelineno-26-6" id="__codelineno-26-6" name="__codelineno-26-6"></a><span class="c1"># 掩码创建</span>
+</span><span id="__span-26-7"><a href="#__codelineno-26-7" id="__codelineno-26-7" name="__codelineno-26-7"></a><span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">&gt;=</span> <span class="n">start_idx</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">x</span> <span class="o">&lt;</span> <span class="n">end_idx</span><span class="p">)</span>
+</span><span id="__span-26-8"><a href="#__codelineno-26-8" id="__codelineno-26-8" name="__codelineno-26-8"></a>
+</span><span id="__span-26-9"><a href="#__codelineno-26-9" id="__codelineno-26-9" name="__codelineno-26-9"></a><span class="c1"># 索引转换</span>
+</span><span id="__span-26-10"><a href="#__codelineno-26-10" id="__codelineno-26-10" name="__codelineno-26-10"></a><span class="n">x_local</span> <span class="o">=</span> <span class="n">mask</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">start_idx</span><span class="p">)</span>
+</span><span id="__span-26-11"><a href="#__codelineno-26-11" id="__codelineno-26-11" name="__codelineno-26-11"></a>
+</span><span id="__span-26-12"><a href="#__codelineno-26-12" id="__codelineno-26-12" name="__codelineno-26-12"></a><span class="c1"># 嵌入查找</span>
+</span><span id="__span-26-13"><a href="#__codelineno-26-13" id="__codelineno-26-13" name="__codelineno-26-13"></a><span class="n">y</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">embedding</span><span class="p">(</span><span class="n">x_local</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
+</span><span id="__span-26-14"><a href="#__codelineno-26-14" id="__codelineno-26-14" name="__codelineno-26-14"></a>
+</span><span id="__span-26-15"><a href="#__codelineno-26-15" id="__codelineno-26-15" name="__codelineno-26-15"></a><span class="c1"># 掩码应用</span>
+</span><span id="__span-26-16"><a href="#__codelineno-26-16" id="__codelineno-26-16" name="__codelineno-26-16"></a><span class="n">y</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">y</span>
+</span><span id="__span-26-17"><a href="#__codelineno-26-17" id="__codelineno-26-17" name="__codelineno-26-17"></a>
+</span><span id="__span-26-18"><a href="#__codelineno-26-18" id="__codelineno-26-18" name="__codelineno-26-18"></a><span class="c1"># AllReduce</span>
+</span><span id="__span-26-19"><a href="#__codelineno-26-19" id="__codelineno-26-19" name="__codelineno-26-19"></a><span class="n">dist</span><span class="o">.</span><span class="n">all_reduce</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+</span><span id="__span-26-20"><a href="#__codelineno-26-20" id="__codelineno-26-20" name="__codelineno-26-20"></a>
+</span><span id="__span-26-21"><a href="#__codelineno-26-21" id="__codelineno-26-21" name="__codelineno-26-21"></a><span class="c1"># Logits 计算</span>
+</span><span id="__span-26-22"><a href="#__codelineno-26-22" id="__codelineno-26-22" name="__codelineno-26-22"></a><span class="n">logits</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
+</span><span id="__span-26-23"><a href="#__codelineno-26-23" id="__codelineno-26-23" name="__codelineno-26-23"></a>
+</span><span id="__span-26-24"><a href="#__codelineno-26-24" id="__codelineno-26-24" name="__codelineno-26-24"></a><span class="c1"># Gather</span>
+</span><span id="__span-26-25"><a href="#__codelineno-26-25" id="__codelineno-26-25" name="__codelineno-26-25"></a><span class="n">dist</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">all_logits</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-26-26"><a href="#__codelineno-26-26" id="__codelineno-26-26" name="__codelineno-26-26"></a><span class="n">logits</span> <span class="o">=</span> <span class="n">cat</span><span class="p">(</span><span class="n">all_logits</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span>
+</span></code></pre></div>
+<h3 id="93">9.3 与其他模块的关系<a class="headerlink" href="#93" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a href="#__codelineno-27-1" id="__codelineno-27-1" name="__codelineno-27-1"></a>embed_head.py 在整个架构中的位置:
+</span><span id="__span-27-2"><a href="#__codelineno-27-2" id="__codelineno-27-2" name="__codelineno-27-2"></a>
+</span><span id="__span-27-3"><a href="#__codelineno-27-3" id="__codelineno-27-3" name="__codelineno-27-3"></a>输入 → VocabParallelEmbedding → Qwen3DecoderLayer × N → ParallelLMHead → 采样 → 输出
+</span><span id="__span-27-4"><a href="#__codelineno-27-4" id="__codelineno-27-4" name="__codelineno-27-4"></a>         │                                                    │
+</span><span id="__span-27-5"><a href="#__codelineno-27-5" id="__codelineno-27-5" name="__codelineno-27-5"></a>         └────────────── 词汇表并行 ──────────────────────────┘
+</span></code></pre></div>
+<p></p>
+<aside class="md-source-file">
+<span class="md-source-file__fact">
+<span class="md-icon" title="最后更新">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
+</span>
+<span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年3月19日 17:15:52 UTC"><span class="timeago" datetime="2026-03-19T17:15:52+00:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年3月19日 17:15:52 UTC">2026-03-19</span>
+</span>
+<span class="md-source-file__fact">
+<span class="md-icon" title="创建日期">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"></path></svg>
+</span>
+<span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年3月19日 17:15:52 UTC"><span class="timeago" datetime="2026-03-19T17:15:52+00:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年3月19日 17:15:52 UTC">2026-03-19</span>
+</span>
+</aside>
+</article>
+</div>
+<script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+<button class="md-top md-icon" data-md-component="top" hidden="" type="button">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"></path></svg>
+  回到页面顶部
+</button>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+</div>
+<div class="md-social">
+<a class="md-social__link" href="https://github.com/Xjg-0216/nano-vllm" rel="noopener" target="_blank" title="Xjg-0216 on GitHub">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"></path></svg>
+</a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.highlight", "search.share", "search.suggest", "content.code.copy", "content.code.annotate", "content.tabs.link"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+<script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+<script src="../js/timeago.min.js"></script>
+<script src="../js/timeago_mkdocs_material.js"></script>
+<script src="../javascripts/mathjax.js"></script>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</body>
+</html>
