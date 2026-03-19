@@ -67,8 +67,8 @@ nav:
     - Qwen3 模型: 09-model-qwen3.md
     - 模型注意力: 08-model_attention.md
   - 核心组件:
-    - 张量并行基础: 10-tensor-parallel.md
-    - 嵌入层与输出头: 11-embed-head.md
+    - 张量并行基础: 11-tensor-parallel.md
+    - 嵌入层与输出头: 10-embed-head.md
     - 采样器: 15-sampler.md
     - 注意力机制: 16-attention.md
     - 并行线性层: 12-linear.md
