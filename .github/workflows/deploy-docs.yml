@@ -1,0 +1,75 @@
+# GitHub Actions 工作流：部署 MkDocs 文档到 GitHub Pages
+
+name: Deploy MkDocs to GitHub Pages
+
+on:
+  # 推送到 main 分支时触发
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '.github/workflows/deploy-docs.yml'
+  
+  # 允许手动触发
+  workflow_dispatch:
+
+# 设置权限
+permissions:
+  contents: write  # 允许推送代码
+
+# 并发控制：取消同一分支的旧运行
+concurrency:
+  group: "pages-${{ github.head_ref }}"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 1. 检出代码
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整历史（用于 git-revision-date 插件）
+      
+      # 2. 设置 Python 环境
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      # 3. 安装 MkDocs 和插件
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install \
+            mkdocs \
+            mkdocs-material \
+            mkdocs-material[imaging] \
+            mkdocs-mermaid2-plugin \
+            mkdocs-git-revision-date-localized-plugin
+      
+      # 4. 构建文档
+      - name: Build documentation
+        run: mkdocs build --verbose --clean
+      
+      # 5. 部署到 GitHub Pages
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
+          # 如果是 main 分支，部署到 gh-pages 分支
+          # 如果是其他分支，可以部署到测试目录
+          publish_branch: gh-pages
+          # 保留历史记录
+          keep_files: true
+          # 提交信息
+          commit_message: 'docs: 自动部署文档 [skip ci]'
+          # 用户信息
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'

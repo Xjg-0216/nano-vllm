@@ -1,0 +1,150 @@
+# MkDocs 配置文件
+# 用于生成 Nano-vLLM 项目文档网站
+
+site_name: Nano-vLLM 文档
+site_description: Nano-vLLM 是一个轻量级的 vLLM 实现，从头开始构建，用于离线大语言模型推理
+site_author: jg Xu
+site_url: https://xjg-0216.github.io/nano-vllm/
+
+# 仓库配置
+repo_name: Xjg-0216/nano-vllm
+repo_url: https://github.com/Xjg-0216/nano-vllm
+edit_uri: blob/main/docs/
+
+# 主题配置
+theme:
+  name: material
+  language: zh
+  palette:
+    # 浅色模式
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: 切换到深色模式
+    # 深色模式
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: 切换到浅色模式
+  font:
+    text: Roboto
+    code: Roboto Mono
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.indexes
+    - navigation.top
+    - search.highlight
+    - search.share
+    - search.suggest
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+  favicon: assets/logo.png
+  logo: assets/logo.png
+
+# 导航菜单
+nav:
+  - 首页: index.md
+  - 入门指南:
+    - 项目介绍: 01-intro.md
+    - 架构概览: 02-architecture.md
+    - 学习顺序: 03-engine-learning-order.md
+  - Engine 模块:
+    - Sequence 设计: 04-sequence-design.md
+    - BlockManager 设计: 05-block-manager-design.md
+    - BlockManager 流程: 06-block-manager-flow.md
+    - Scheduler 流程: 07-scheduler-flow.md
+  - 模型架构:
+    - Qwen3 模型: 09-model-qwen3.md
+    - 模型注意力: 08-model_attention.md
+  - 核心组件:
+    - 张量并行基础: 10-tensor-parallel.md
+    - 嵌入层与输出头: 11-embed-head.md
+    - 采样器: 15-sampler.md
+    - 注意力机制: 16-attention.md
+    - 并行线性层: 12-linear.md
+    - 并行决策: 13-parallel-decision.md
+    - RoPE 与 LRU 缓存: 14-rope-and-lru-cache.md
+  - vLLM 创新: vllm-innovations.md
+
+# 插件配置
+plugins:
+  - search
+  - mermaid2:
+      version: 10.6.1
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: timeago
+
+# Markdown 扩展
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - meta
+  - md_in_html
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      normalize_issue_symbols: true
+      repo_url_shorthand: true
+      user: Xjg-0216
+      repo: nano-vllm
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      auto_append:
+        - includes/mkdocs.md
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+      combine_header_slug: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+# 额外配置
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Xjg-0216/nano-vllm
+      name: Xjg-0216 on GitHub
+  generator: false
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
