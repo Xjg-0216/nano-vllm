@@ -48,33 +48,31 @@ theme:
     - content.code.copy
     - content.code.annotate
     - content.tabs.link
-  favicon: assets/logo.png
-  logo: assets/logo.png
+  favicon: ""
+  logo: ""
 
 # 导航菜单
 nav:
   - 首页: index.md
   - 入门指南:
-    - 项目介绍: 01-intro.md
-    - 架构概览: 02-architecture.md
-    - 学习顺序: 03-engine-learning-order.md
+    - 项目介绍: 01-intro/01-01-project-overview.md
+    - 架构概览: 01-intro/01-02-architecture.md
+    - 学习路径: 01-intro/01-03-learning-path.md
   - Engine 模块:
-    - Sequence 设计: 04-sequence-design.md
-    - BlockManager 设计: 05-block-manager-design.md
-    - BlockManager 流程: 06-block-manager-flow.md
-    - Scheduler 流程: 07-scheduler-flow.md
-  - 模型架构:
-    - Qwen3 模型: 09-model-qwen3.md
-    - 模型注意力: 08-model_attention.md
-  - 核心组件:
-    - 张量并行基础: 11-tensor-parallel.md
-    - 嵌入层与输出头: 10-embed-head.md
-    - 采样器: 15-sampler.md
-    - 注意力机制: 16-attention.md
-    - 并行线性层: 12-linear.md
-    - 并行决策: 13-parallel-decision.md
-    - RoPE 与 LRU 缓存: 14-rope-and-lru-cache.md
-  - vLLM 创新: vllm-innovations.md
+    - Sequence: 02-engine/02-01-sequence.md
+    - BlockManager: 02-engine/02-02-block-manager.md
+    - Scheduler: 02-engine/02-03-scheduler.md
+    - ModelRunner: 02-engine/02-04-model-runner.md
+  - Model 模块:
+    - Qwen3 总览: 03-model/03-01-qwen3-overview.md
+    - 嵌入层与输出头: 03-model/03-02-embedding.md
+    - Attention 机制: 03-model/03-03-attention.md
+    - 并行线性层: 03-model/03-04-linear.md
+    - 张量并行基础: 03-model/03-05-tensor-parallel.md
+    - RoPE 位置编码: 03-model/03-06-rope.md
+    - 采样器: 03-model/03-07-sampler.md
+  - vLLM 创新: 04-vllm/04-01-innovations.md
+  - 部署: 05-deployment/05-01-deploy.md
 
 # 插件配置
 plugins:
