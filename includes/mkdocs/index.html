@@ -20,7 +20,7 @@
         
       
       
-      <link rel="icon" href="../../assets/logo.png">
+      <link rel="icon" href="../..">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
@@ -91,7 +91,8 @@
   <nav class="md-header__inner md-grid" aria-label="页眉">
     <a href="../.." title="Nano-vLLM 文档" class="md-header__button md-logo" aria-label="Nano-vLLM 文档" data-md-component="logo">
       
-  <img src="../../assets/logo.png" alt="logo">
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -241,7 +242,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../01-intro/" class="md-tabs__link">
+        <a href="../../01-intro/01-01-project-overview/" class="md-tabs__link">
           
   
   
@@ -263,7 +264,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../04-sequence-design/" class="md-tabs__link">
+        <a href="../../02-engine/02-01-sequence/" class="md-tabs__link">
           
   
   
@@ -285,35 +286,13 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../09-model-qwen3/" class="md-tabs__link">
+        <a href="../../03-model/03-01-qwen3-overview/" class="md-tabs__link">
           
   
   
     
   
-  模型架构
-
-        </a>
-      </li>
-    
-  
-
-      
-        
-  
-  
-  
-  
-    
-    
-      <li class="md-tabs__item">
-        <a href="../../11-tensor-parallel/" class="md-tabs__link">
-          
-  
-  
-    
-  
-  核心组件
+  Model 模块
 
         </a>
       </li>
@@ -327,13 +306,32 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../vllm-innovations/" class="md-tabs__link">
+      <a href="../../04-vllm/04-01-innovations/" class="md-tabs__link">
         
   
   
     
   
   vLLM 创新
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../05-deployment/05-01-deploy/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  部署
 
       </a>
     </li>
@@ -370,7 +368,8 @@
   <label class="md-nav__title" for="__drawer">
     <a href="../.." title="Nano-vLLM 文档" class="md-nav__button md-logo" aria-label="Nano-vLLM 文档" data-md-component="logo">
       
-  <img src="../../assets/logo.png" alt="logo">
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
     Nano-vLLM 文档
@@ -486,7 +485,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../01-intro/" class="md-nav__link">
+      <a href="../../01-intro/01-01-project-overview/" class="md-nav__link">
         
   
   
@@ -514,7 +513,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../02-architecture/" class="md-nav__link">
+      <a href="../../01-intro/01-02-architecture/" class="md-nav__link">
         
   
   
@@ -542,14 +541,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../03-engine-learning-order/" class="md-nav__link">
+      <a href="../../01-intro/01-03-learning-path/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    学习顺序
+    学习路径
   
 
     
@@ -641,14 +640,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../04-sequence-design/" class="md-nav__link">
+      <a href="../../02-engine/02-01-sequence/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Sequence 设计
+    Sequence
   
 
     
@@ -669,14 +668,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../05-block-manager-design/" class="md-nav__link">
+      <a href="../../02-engine/02-02-block-manager/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    BlockManager 设计
+    BlockManager
   
 
     
@@ -697,14 +696,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../06-block-manager-flow/" class="md-nav__link">
+      <a href="../../02-engine/02-03-scheduler/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    BlockManager 流程
+    Scheduler
   
 
     
@@ -725,14 +724,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../07-scheduler-flow/" class="md-nav__link">
+      <a href="../../02-engine/02-04-model-runner/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Scheduler 流程
+    ModelRunner
   
 
     
@@ -761,6 +760,16 @@
   
     
     
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
       
         
       
@@ -791,7 +800,7 @@
   <span class="md-ellipsis">
     
   
-    模型架构
+    Model 模块
   
 
     
@@ -807,7 +816,7 @@
             <span class="md-nav__icon md-icon"></span>
             
   
-    模型架构
+    Model 模块
   
 
           </label>
@@ -820,14 +829,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../09-model-qwen3/" class="md-nav__link">
+      <a href="../../03-model/03-01-qwen3-overview/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Qwen3 模型
+    Qwen3 总览
   
 
     
@@ -848,140 +857,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../08-model_attention/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    模型注意力
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
-        
-          
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    核心组件
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    核心组件
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../11-tensor-parallel/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    张量并行基础
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../10-embed-head/" class="md-nav__link">
+      <a href="../../03-model/03-02-embedding/" class="md-nav__link">
         
   
   
@@ -1009,14 +885,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../15-sampler/" class="md-nav__link">
+      <a href="../../03-model/03-03-attention/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    采样器
+    Attention 机制
   
 
     
@@ -1037,35 +913,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../16-attention/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    注意力机制
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../12-linear/" class="md-nav__link">
+      <a href="../../03-model/03-04-linear/" class="md-nav__link">
         
   
   
@@ -1093,14 +941,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../13-parallel-decision/" class="md-nav__link">
+      <a href="../../03-model/03-05-tensor-parallel/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    并行决策
+    张量并行基础
   
 
     
@@ -1121,14 +969,42 @@
   
   
     <li class="md-nav__item">
-      <a href="../../14-rope-and-lru-cache/" class="md-nav__link">
+      <a href="../../03-model/03-06-rope/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    RoPE 与 LRU 缓存
+    RoPE 位置编码
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-model/03-07-sampler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    采样器
   
 
     
@@ -1156,7 +1032,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../vllm-innovations/" class="md-nav__link">
+      <a href="../../04-vllm/04-01-innovations/" class="md-nav__link">
         
   
   
@@ -1164,6 +1040,33 @@
     
   
     vLLM 创新
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-deployment/05-01-deploy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    部署
   
 
     

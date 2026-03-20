@@ -1,0 +1,1965 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="zh">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="Nano-vLLM 是一个轻量级的 vLLM 实现，从头开始构建，用于离线大语言模型推理" name="description"/>
+<meta content="jg Xu" name="author"/>
+<link href="https://xjg-0216.github.io/nano-vllm/03-model/03-07-sampler/" rel="canonical"/>
+<link href="../03-06-rope/" rel="prev"/>
+<link href="../../04-vllm/04-01-innovations/" rel="next"/>
+<link href="../.." rel="icon"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.6" name="generator"/>
+<title>采样器 - Nano-vLLM 文档</title>
+<link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<link href="../../css/timeago.css" rel="stylesheet"/>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+</head>
+<body data-md-color-accent="indigo" data-md-color-primary="indigo" data-md-color-scheme="default" dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#sampler">
+          跳转至
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+<nav aria-label="页眉" class="md-header__inner md-grid">
+<a aria-label="Nano-vLLM 文档" class="md-header__button md-logo" data-md-component="logo" href="../.." title="Nano-vLLM 文档">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            Nano-vLLM 文档
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              采样器
+            
+          </span>
+</div>
+</div>
+</div>
+<form class="md-header__option" data-md-component="palette">
+<input aria-label="切换到深色模式" class="md-option" data-md-color-accent="indigo" data-md-color-media="(prefers-color-scheme: light)" data-md-color-primary="indigo" data-md-color-scheme="default" id="__palette_0" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_1" hidden="" title="切换到深色模式">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+<input aria-label="切换到浅色模式" class="md-option" data-md-color-accent="indigo" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-primary="indigo" data-md-color-scheme="slate" id="__palette_1" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_0" hidden="" title="切换到浅色模式">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+</form>
+<script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="搜索" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="搜索" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</label>
+<nav aria-label="查找" class="md-search__options">
+<a aria-label="分享" class="md-search__icon md-icon" data-clipboard="" data-clipboard-text="" data-md-component="search-share" href="javascript:void(0)" tabindex="-1" title="分享">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"></path></svg>
+</a>
+<button aria-label="清空当前内容" class="md-search__icon md-icon" tabindex="-1" title="清空当前内容" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+<div class="md-search__suggest" data-md-component="search-suggest"></div>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/Xjg-0216/nano-vllm" title="前往仓库">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    Xjg-0216/nano-vllm
+  </div>
+</a>
+</div>
+</nav>
+<nav aria-label="标签" class="md-tabs" data-md-component="tabs">
+<div class="md-grid">
+<ul class="md-tabs__list">
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../..">
+        
+  
+  
+    
+  
+  首页
+
+      </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../01-intro/01-01-project-overview/">
+          
+  
+  
+    
+  
+  入门指南
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../02-engine/02-01-sequence/">
+          
+  
+  
+    
+  
+  Engine 模块
+
+        </a>
+</li>
+<li class="md-tabs__item md-tabs__item--active">
+<a class="md-tabs__link" href="../03-01-qwen3-overview/">
+          
+  
+  
+    
+  
+  Model 模块
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../04-vllm/04-01-innovations/">
+        
+  
+  
+    
+  
+  vLLM 创新
+
+      </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../05-deployment/05-01-deploy/">
+        
+  
+  
+    
+  
+  部署
+
+      </a>
+</li>
+</ul>
+</div>
+</nav>
+</header>
+<div class="md-container" data-md-component="container">
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="导航栏" class="md-nav md-nav--primary md-nav--lifted" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="Nano-vLLM 文档" class="md-nav__button md-logo" data-md-component="logo" href="../.." title="Nano-vLLM 文档">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+    Nano-vLLM 文档
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/Xjg-0216/nano-vllm" title="前往仓库">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    Xjg-0216/nano-vllm
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../..">
+<span class="md-ellipsis">
+    
+  
+    首页
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    入门指南
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    入门指南
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../01-intro/01-01-project-overview/">
+<span class="md-ellipsis">
+    
+  
+    项目介绍
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../01-intro/01-02-architecture/">
+<span class="md-ellipsis">
+    
+  
+    架构概览
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../01-intro/01-03-learning-path/">
+<span class="md-ellipsis">
+    
+  
+    学习路径
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_3" type="checkbox"/>
+<label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    Engine 模块
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_3_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_3">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Engine 模块
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../02-engine/02-01-sequence/">
+<span class="md-ellipsis">
+    
+  
+    Sequence
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../02-engine/02-02-block-manager/">
+<span class="md-ellipsis">
+    
+  
+    BlockManager
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../02-engine/02-03-scheduler/">
+<span class="md-ellipsis">
+    
+  
+    Scheduler
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../02-engine/02-04-model-runner/">
+<span class="md-ellipsis">
+    
+  
+    ModelRunner
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_4" type="checkbox"/>
+<label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    Model 模块
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="true" aria-labelledby="__nav_4_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_4">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Model 模块
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../03-01-qwen3-overview/">
+<span class="md-ellipsis">
+    
+  
+    Qwen3 总览
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../03-02-embedding/">
+<span class="md-ellipsis">
+    
+  
+    嵌入层与输出头
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../03-03-attention/">
+<span class="md-ellipsis">
+    
+  
+    Attention 机制
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../03-04-linear/">
+<span class="md-ellipsis">
+    
+  
+    并行线性层
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../03-05-tensor-parallel/">
+<span class="md-ellipsis">
+    
+  
+    张量并行基础
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../03-06-rope/">
+<span class="md-ellipsis">
+    
+  
+    RoPE 位置编码
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    
+  
+    采样器
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+<span class="md-ellipsis">
+    
+  
+    采样器
+  
+
+    
+  </span>
+</a>
+<nav aria-label="目录" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_1">
+<span class="md-ellipsis">
+      
+        一、模块概述
+      
+    </span>
+</a>
+<nav aria-label="一、模块概述" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#11">
+<span class="md-ellipsis">
+      
+        1.1 核心功能
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#12">
+<span class="md-ellipsis">
+      
+        1.2 在推理流程中的位置
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#13">
+<span class="md-ellipsis">
+      
+        1.3 类结构
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_2">
+<span class="md-ellipsis">
+      
+        二、采样原理
+      
+    </span>
+</a>
+<nav aria-label="二、采样原理" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#21">
+<span class="md-ellipsis">
+      
+        2.1 标准多项式采样
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#22-gumbel-max">
+<span class="md-ellipsis">
+      
+        2.2 Gumbel-Max 技巧
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#23">
+<span class="md-ellipsis">
+      
+        2.3 数学推导
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#24-gumbel">
+<span class="md-ellipsis">
+      
+        2.4 Gumbel 分布
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_3">
+<span class="md-ellipsis">
+      
+        三、代码详解
+      
+    </span>
+</a>
+<nav aria-label="三、代码详解" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#31">
+<span class="md-ellipsis">
+      
+        3.1 完整代码
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#32">
+<span class="md-ellipsis">
+      
+        3.2 逐步解析
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_4">
+<span class="md-ellipsis">
+      
+        四、温度参数详解
+      
+    </span>
+</a>
+<nav aria-label="四、温度参数详解" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#41">
+<span class="md-ellipsis">
+      
+        4.1 温度的数学作用
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#42">
+<span class="md-ellipsis">
+      
+        4.2 温度效果对比
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#43">
+<span class="md-ellipsis">
+      
+        4.3 温度选择建议
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_5">
+<span class="md-ellipsis">
+      
+        五、完整采样流程
+      
+    </span>
+</a>
+<nav aria-label="五、完整采样流程" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#51-logits-token">
+<span class="md-ellipsis">
+      
+        5.1 从 logits 到 token
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#52">
+<span class="md-ellipsis">
+      
+        5.2 数值示例
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_6">
+<span class="md-ellipsis">
+      
+        六、关键问题解答
+      
+    </span>
+</a>
+<nav aria-label="六、关键问题解答" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#prompt">
+<span class="md-ellipsis">
+      
+        ❓ 多次相同的 prompt 生成过程会不会生成相同的回答？
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_11">
+<span class="md-ellipsis">
+      
+        七、性能优化
+      
+    </span>
+</a>
+<nav aria-label="七、性能优化" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#71-torch-compile">
+<span class="md-ellipsis">
+      
+        7.1 Torch Compile
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#72">
+<span class="md-ellipsis">
+      
+        7.2 原地操作
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#73">
+<span class="md-ellipsis">
+      
+        7.3 数值稳定性
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_12">
+<span class="md-ellipsis">
+      
+        八、与其他采样方法的对比
+      
+    </span>
+</a>
+<nav aria-label="八、与其他采样方法的对比" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#81">
+<span class="md-ellipsis">
+      
+        8.1 采样方法对比
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#82-top-k">
+<span class="md-ellipsis">
+      
+        8.2 扩展：Top-K 采样
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#83-nucleus-top-p">
+<span class="md-ellipsis">
+      
+        8.3 扩展：Nucleus (Top-P) 采样
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_13">
+<span class="md-ellipsis">
+      
+        九、总结
+      
+    </span>
+</a>
+<nav aria-label="九、总结" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#91">
+<span class="md-ellipsis">
+      
+        9.1 核心要点
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#92">
+<span class="md-ellipsis">
+      
+        9.2 关键公式
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#93">
+<span class="md-ellipsis">
+      
+        9.3 使用建议
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#94">
+<span class="md-ellipsis">
+      
+        9.4 与其他模块的关系
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../04-vllm/04-01-innovations/">
+<span class="md-ellipsis">
+    
+  
+    vLLM 创新
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../05-deployment/05-01-deploy/">
+<span class="md-ellipsis">
+    
+  
+    部署
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="目录" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_1">
+<span class="md-ellipsis">
+      
+        一、模块概述
+      
+    </span>
+</a>
+<nav aria-label="一、模块概述" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#11">
+<span class="md-ellipsis">
+      
+        1.1 核心功能
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#12">
+<span class="md-ellipsis">
+      
+        1.2 在推理流程中的位置
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#13">
+<span class="md-ellipsis">
+      
+        1.3 类结构
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_2">
+<span class="md-ellipsis">
+      
+        二、采样原理
+      
+    </span>
+</a>
+<nav aria-label="二、采样原理" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#21">
+<span class="md-ellipsis">
+      
+        2.1 标准多项式采样
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#22-gumbel-max">
+<span class="md-ellipsis">
+      
+        2.2 Gumbel-Max 技巧
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#23">
+<span class="md-ellipsis">
+      
+        2.3 数学推导
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#24-gumbel">
+<span class="md-ellipsis">
+      
+        2.4 Gumbel 分布
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_3">
+<span class="md-ellipsis">
+      
+        三、代码详解
+      
+    </span>
+</a>
+<nav aria-label="三、代码详解" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#31">
+<span class="md-ellipsis">
+      
+        3.1 完整代码
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#32">
+<span class="md-ellipsis">
+      
+        3.2 逐步解析
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_4">
+<span class="md-ellipsis">
+      
+        四、温度参数详解
+      
+    </span>
+</a>
+<nav aria-label="四、温度参数详解" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#41">
+<span class="md-ellipsis">
+      
+        4.1 温度的数学作用
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#42">
+<span class="md-ellipsis">
+      
+        4.2 温度效果对比
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#43">
+<span class="md-ellipsis">
+      
+        4.3 温度选择建议
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_5">
+<span class="md-ellipsis">
+      
+        五、完整采样流程
+      
+    </span>
+</a>
+<nav aria-label="五、完整采样流程" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#51-logits-token">
+<span class="md-ellipsis">
+      
+        5.1 从 logits 到 token
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#52">
+<span class="md-ellipsis">
+      
+        5.2 数值示例
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_6">
+<span class="md-ellipsis">
+      
+        六、关键问题解答
+      
+    </span>
+</a>
+<nav aria-label="六、关键问题解答" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#prompt">
+<span class="md-ellipsis">
+      
+        ❓ 多次相同的 prompt 生成过程会不会生成相同的回答？
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_11">
+<span class="md-ellipsis">
+      
+        七、性能优化
+      
+    </span>
+</a>
+<nav aria-label="七、性能优化" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#71-torch-compile">
+<span class="md-ellipsis">
+      
+        7.1 Torch Compile
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#72">
+<span class="md-ellipsis">
+      
+        7.2 原地操作
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#73">
+<span class="md-ellipsis">
+      
+        7.3 数值稳定性
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_12">
+<span class="md-ellipsis">
+      
+        八、与其他采样方法的对比
+      
+    </span>
+</a>
+<nav aria-label="八、与其他采样方法的对比" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#81">
+<span class="md-ellipsis">
+      
+        8.1 采样方法对比
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#82-top-k">
+<span class="md-ellipsis">
+      
+        8.2 扩展：Top-K 采样
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#83-nucleus-top-p">
+<span class="md-ellipsis">
+      
+        8.3 扩展：Nucleus (Top-P) 采样
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_13">
+<span class="md-ellipsis">
+      
+        九、总结
+      
+    </span>
+</a>
+<nav aria-label="九、总结" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#91">
+<span class="md-ellipsis">
+      
+        9.1 核心要点
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#92">
+<span class="md-ellipsis">
+      
+        9.2 关键公式
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#93">
+<span class="md-ellipsis">
+      
+        9.3 使用建议
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#94">
+<span class="md-ellipsis">
+      
+        9.4 与其他模块的关系
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<h1 id="sampler">采样器 (Sampler) 详解<a class="headerlink" href="#sampler" title="Permanent link">¶</a></h1>
+<h2 id="_1">一、模块概述<a class="headerlink" href="#_1" title="Permanent link">¶</a></h2>
+<p><code>nanovllm/layers/sampler.py</code> 实现了从模型输出的 logits 概率分布中采样生成 token 的功能，使用 **Gumbel-Max 技巧**进行高效的温度采样。</p>
+<h3 id="11">1.1 核心功能<a class="headerlink" href="#11" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>功能</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>温度采样</strong></td>
+<td>通过温度参数控制分布的平滑程度</td>
+</tr>
+<tr>
+<td><strong>多项式采样</strong></td>
+<td>从概率分布中随机采样下一个 token</td>
+</tr>
+<tr>
+<td><strong>Gumbel-Max 技巧</strong></td>
+<td>高效的采样实现，避免累积分布计算</td>
+</tr>
+</tbody>
+</table>
+<h3 id="12">1.2 在推理流程中的位置<a class="headerlink" href="#12" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a href="#__codelineno-0-1" id="__codelineno-0-1" name="__codelineno-0-1"></a>完整推理流程:
+</span><span id="__span-0-2"><a href="#__codelineno-0-2" id="__codelineno-0-2" name="__codelineno-0-2"></a>─────────────────────────────────────────────────────────
+</span><span id="__span-0-3"><a href="#__codelineno-0-3" id="__codelineno-0-3" name="__codelineno-0-3"></a>输入 → Embedding → Decoder Layers → LM Head → Sampler → 输出
+</span><span id="__span-0-4"><a href="#__codelineno-0-4" id="__codelineno-0-4" name="__codelineno-0-4"></a>                                        │         │
+</span><span id="__span-0-5"><a href="#__codelineno-0-5" id="__codelineno-0-5" name="__codelineno-0-5"></a>                                        ▼         ▼
+</span><span id="__span-0-6"><a href="#__codelineno-0-6" id="__codelineno-0-6" name="__codelineno-0-6"></a>                                   logits     token IDs
+</span><span id="__span-0-7"><a href="#__codelineno-0-7" id="__codelineno-0-7" name="__codelineno-0-7"></a>                                   [batch,    [batch]
+</span><span id="__span-0-8"><a href="#__codelineno-0-8" id="__codelineno-0-8" name="__codelineno-0-8"></a>                                   vocab]
+</span></code></pre></div>
+<h3 id="13">1.3 类结构<a class="headerlink" href="#13" title="Permanent link">¶</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a href="#__codelineno-1-1" id="__codelineno-1-1" name="__codelineno-1-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">Sampler</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span><span id="__span-1-2"><a href="#__codelineno-1-2" id="__codelineno-1-2" name="__codelineno-1-2"></a><span class="w">    </span><span class="sd">"""</span>
+</span><span id="__span-1-3"><a href="#__codelineno-1-3" id="__codelineno-1-3" name="__codelineno-1-3"></a><span class="sd">    采样器模块</span>
+</span><span id="__span-1-4"><a href="#__codelineno-1-4" id="__codelineno-1-4" name="__codelineno-1-4"></a>
+</span><span id="__span-1-5"><a href="#__codelineno-1-5" id="__codelineno-1-5" name="__codelineno-1-5"></a><span class="sd">    从模型输出的 logits 中采样生成下一个 token。</span>
+</span><span id="__span-1-6"><a href="#__codelineno-1-6" id="__codelineno-1-6" name="__codelineno-1-6"></a><span class="sd">    使用 Gumbel-Max 技巧实现高效的多项式采样。</span>
+</span><span id="__span-1-7"><a href="#__codelineno-1-7" id="__codelineno-1-7" name="__codelineno-1-7"></a><span class="sd">    """</span>
+</span><span id="__span-1-8"><a href="#__codelineno-1-8" id="__codelineno-1-8" name="__codelineno-1-8"></a>
+</span><span id="__span-1-9"><a href="#__codelineno-1-9" id="__codelineno-1-9" name="__codelineno-1-9"></a>    <span class="c1"># 核心方法</span>
+</span><span id="__span-1-10"><a href="#__codelineno-1-10" id="__codelineno-1-10" name="__codelineno-1-10"></a>    <span class="fm">__init__</span><span class="p">()</span>              <span class="c1"># 初始化</span>
+</span><span id="__span-1-11"><a href="#__codelineno-1-11" id="__codelineno-1-11" name="__codelineno-1-11"></a>    <span class="n">forward</span><span class="p">()</span>               <span class="c1"># 采样前向传播 (使用 torch.compile 优化)</span>
+</span></code></pre></div>
+<hr/>
+<h2 id="_2">二、采样原理<a class="headerlink" href="#_2" title="Permanent link">¶</a></h2>
+<h3 id="21">2.1 标准多项式采样<a class="headerlink" href="#21" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a href="#__codelineno-2-1" id="__codelineno-2-1" name="__codelineno-2-1"></a>标准采样方法：
+</span><span id="__span-2-2"><a href="#__codelineno-2-2" id="__codelineno-2-2" name="__codelineno-2-2"></a>1. 计算 softmax 概率：p = softmax(logits / temperature)
+</span><span id="__span-2-3"><a href="#__codelineno-2-3" id="__codelineno-2-3" name="__codelineno-2-3"></a>2. 计算累积分布：cumsum(p)
+</span><span id="__span-2-4"><a href="#__codelineno-2-4" id="__codelineno-2-4" name="__codelineno-2-4"></a>3. 生成均匀随机数：u ~ Uniform(0, 1)
+</span><span id="__span-2-5"><a href="#__codelineno-2-5" id="__codelineno-2-5" name="__codelineno-2-5"></a>4. 搜索：找到第一个 cumsum(p) &gt; u 的位置
+</span><span id="__span-2-6"><a href="#__codelineno-2-6" id="__codelineno-2-6" name="__codelineno-2-6"></a>
+</span><span id="__span-2-7"><a href="#__codelineno-2-7" id="__codelineno-2-7" name="__codelineno-2-7"></a>复杂度：O(vocab_size)
+</span><span id="__span-2-8"><a href="#__codelineno-2-8" id="__codelineno-2-8" name="__codelineno-2-8"></a>问题：需要搜索操作，效率较低
+</span></code></pre></div>
+<h3 id="22-gumbel-max">2.2 Gumbel-Max 技巧<a class="headerlink" href="#22-gumbel-max" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a href="#__codelineno-3-1" id="__codelineno-3-1" name="__codelineno-3-1"></a>Gumbel-Max 技巧：
+</span><span id="__span-3-2"><a href="#__codelineno-3-2" id="__codelineno-3-2" name="__codelineno-3-2"></a>sample = argmax(logits / temperature + Gumbel(0, 1))
+</span><span id="__span-3-3"><a href="#__codelineno-3-3" id="__codelineno-3-3" name="__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a href="#__codelineno-3-4" id="__codelineno-3-4" name="__codelineno-3-4"></a>其中 Gumbel(0, 1) = -log(-log(ε)), ε ~ Uniform(0, 1)
+</span><span id="__span-3-5"><a href="#__codelineno-3-5" id="__codelineno-3-5" name="__codelineno-3-5"></a>
+</span><span id="__span-3-6"><a href="#__codelineno-3-6" id="__codelineno-3-6" name="__codelineno-3-6"></a>等价形式（代码实现）：
+</span><span id="__span-3-7"><a href="#__codelineno-3-7" id="__codelineno-3-7" name="__codelineno-3-7"></a>sample = argmax(softmax(logits / temperature) / g)
+</span><span id="__span-3-8"><a href="#__codelineno-3-8" id="__codelineno-3-8" name="__codelineno-3-8"></a>其中 g = -log(exponential(1))
+</span><span id="__span-3-9"><a href="#__codelineno-3-9" id="__codelineno-3-9" name="__codelineno-3-9"></a>
+</span><span id="__span-3-10"><a href="#__codelineno-3-10" id="__codelineno-3-10" name="__codelineno-3-10"></a>优势：
+</span><span id="__span-3-11"><a href="#__codelineno-3-11" id="__codelineno-3-11" name="__codelineno-3-11"></a>- 只需要一次 argmax 操作
+</span><span id="__span-3-12"><a href="#__codelineno-3-12" id="__codelineno-3-12" name="__codelineno-3-12"></a>- 无需累积分布和搜索
+</span><span id="__span-3-13"><a href="#__codelineno-3-13" id="__codelineno-3-13" name="__codelineno-3-13"></a>- 完全向量化，GPU 友好
+</span></code></pre></div>
+<h3 id="23">2.3 数学推导<a class="headerlink" href="#23" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a href="#__codelineno-4-1" id="__codelineno-4-1" name="__codelineno-4-1"></a>目标：从多项式分布 Multinomial(π) 中采样，其中 π = softmax(θ)
+</span><span id="__span-4-2"><a href="#__codelineno-4-2" id="__codelineno-4-2" name="__codelineno-4-2"></a>
+</span><span id="__span-4-3"><a href="#__codelineno-4-3" id="__codelineno-4-3" name="__codelineno-4-3"></a>标准方法：
+</span><span id="__span-4-4"><a href="#__codelineno-4-4" id="__codelineno-4-4" name="__codelineno-4-4"></a>1. 计算 π_i = exp(θ_i) / Σⱼ exp(θ_j)
+</span><span id="__span-4-5"><a href="#__codelineno-4-5" id="__codelineno-4-5" name="__codelineno-4-5"></a>2. 生成 u ~ Uniform(0, 1)
+</span><span id="__span-4-6"><a href="#__codelineno-4-6" id="__codelineno-4-6" name="__codelineno-4-6"></a>3. 找到 k 使得 Σᵢ&lt;ₖ πᵢ &lt; u ≤ Σᵢ≤ₖ πᵢ
+</span><span id="__span-4-7"><a href="#__codelineno-4-7" id="__codelineno-4-7" name="__codelineno-4-7"></a>
+</span><span id="__span-4-8"><a href="#__codelineno-4-8" id="__codelineno-4-8" name="__codelineno-4-8"></a>Gumbel-Max 技巧：
+</span><span id="__span-4-9"><a href="#__codelineno-4-9" id="__codelineno-4-9" name="__codelineno-4-9"></a>1. 生成 Gumbel 噪声：g_i ~ Gumbel(0, 1)
+</span><span id="__span-4-10"><a href="#__codelineno-4-10" id="__codelineno-4-10" name="__codelineno-4-10"></a>2. 计算：k = argmax_i(θ_i + g_i)
+</span><span id="__span-4-11"><a href="#__codelineno-4-11" id="__codelineno-4-11" name="__codelineno-4-11"></a>
+</span><span id="__span-4-12"><a href="#__codelineno-4-12" id="__codelineno-4-12" name="__codelineno-4-12"></a>证明：
+</span><span id="__span-4-13"><a href="#__codelineno-4-13" id="__codelineno-4-13" name="__codelineno-4-13"></a>P(k = argmax_i(θ_i + g_i)) = π_k = exp(θ_k) / Σⱼ exp(θ_j)
+</span><span id="__span-4-14"><a href="#__codelineno-4-14" id="__codelineno-4-14" name="__codelineno-4-14"></a>
+</span><span id="__span-4-15"><a href="#__codelineno-4-15" id="__codelineno-4-15" name="__codelineno-4-15"></a>因此，argmax(θ + g) 等价于从 softmax(θ) 中采样！
+</span></code></pre></div>
+<h3 id="24-gumbel">2.4 Gumbel 分布<a class="headerlink" href="#24-gumbel" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a href="#__codelineno-5-1" id="__codelineno-5-1" name="__codelineno-5-1"></a>Gumbel 分布 (Type-I Extreme Value Distribution):
+</span><span id="__span-5-2"><a href="#__codelineno-5-2" id="__codelineno-5-2" name="__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a href="#__codelineno-5-3" id="__codelineno-5-3" name="__codelineno-5-3"></a>概率密度函数：
+</span><span id="__span-5-4"><a href="#__codelineno-5-4" id="__codelineno-5-4" name="__codelineno-5-4"></a>f(x) = exp(-(x + exp(-x)))
+</span><span id="__span-5-5"><a href="#__codelineno-5-5" id="__codelineno-5-5" name="__codelineno-5-5"></a>
+</span><span id="__span-5-6"><a href="#__codelineno-5-6" id="__codelineno-5-6" name="__codelineno-5-6"></a>生成方法：
+</span><span id="__span-5-7"><a href="#__codelineno-5-7" id="__codelineno-5-7" name="__codelineno-5-7"></a>如果 ε ~ Uniform(0, 1)，则：
+</span><span id="__span-5-8"><a href="#__codelineno-5-8" id="__codelineno-5-8" name="__codelineno-5-8"></a>g = -log(-log(ε)) ~ Gumbel(0, 1)
+</span><span id="__span-5-9"><a href="#__codelineno-5-9" id="__codelineno-5-9" name="__codelineno-5-9"></a>
+</span><span id="__span-5-10"><a href="#__codelineno-5-10" id="__codelineno-5-10" name="__codelineno-5-10"></a>代码中的等价形式：
+</span><span id="__span-5-11"><a href="#__codelineno-5-11" id="__codelineno-5-11" name="__codelineno-5-11"></a>g = 1 / exponential(1)
+</span><span id="__span-5-12"><a href="#__codelineno-5-12" id="__codelineno-5-12" name="__codelineno-5-12"></a>
+</span><span id="__span-5-13"><a href="#__codelineno-5-13" id="__codelineno-5-13" name="__codelineno-5-13"></a>因为：
+</span><span id="__span-5-14"><a href="#__codelineno-5-14" id="__codelineno-5-14" name="__codelineno-5-14"></a>probs / g = probs * (1/g) = probs * exp(gumbel_noise)
+</span><span id="__span-5-15"><a href="#__codelineno-5-15" id="__codelineno-5-15" name="__codelineno-5-15"></a>log(probs / g) = log(probs) + gumbel_noise
+</span><span id="__span-5-16"><a href="#__codelineno-5-16" id="__codelineno-5-16" name="__codelineno-5-16"></a>argmax(log(probs / g)) = argmax(probs / g)
+</span></code></pre></div>
+<hr/>
+<h2 id="_3">三、代码详解<a class="headerlink" href="#_3" title="Permanent link">¶</a></h2>
+<h3 id="31">3.1 完整代码<a class="headerlink" href="#31" title="Permanent link">¶</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a href="#__codelineno-6-1" id="__codelineno-6-1" name="__codelineno-6-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">Sampler</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+</span><span id="__span-6-2"><a href="#__codelineno-6-2" id="__codelineno-6-2" name="__codelineno-6-2"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="__span-6-3"><a href="#__codelineno-6-3" id="__codelineno-6-3" name="__codelineno-6-3"></a>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</span><span id="__span-6-4"><a href="#__codelineno-6-4" id="__codelineno-6-4" name="__codelineno-6-4"></a>
+</span><span id="__span-6-5"><a href="#__codelineno-6-5" id="__codelineno-6-5" name="__codelineno-6-5"></a>    <span class="nd">@torch</span><span class="o">.</span><span class="n">compile</span>
+</span><span id="__span-6-6"><a href="#__codelineno-6-6" id="__codelineno-6-6" name="__codelineno-6-6"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logits</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">temperatures</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+</span><span id="__span-6-7"><a href="#__codelineno-6-7" id="__codelineno-6-7" name="__codelineno-6-7"></a><span class="w">        </span><span class="sd">"""</span>
+</span><span id="__span-6-8"><a href="#__codelineno-6-8" id="__codelineno-6-8" name="__codelineno-6-8"></a><span class="sd">        从 logits 中采样 token</span>
+</span><span id="__span-6-9"><a href="#__codelineno-6-9" id="__codelineno-6-9" name="__codelineno-6-9"></a>
+</span><span id="__span-6-10"><a href="#__codelineno-6-10" id="__codelineno-6-10" name="__codelineno-6-10"></a><span class="sd">        Args:</span>
+</span><span id="__span-6-11"><a href="#__codelineno-6-11" id="__codelineno-6-11" name="__codelineno-6-11"></a><span class="sd">            logits: 模型输出的 logits，形状为 [batch_size, vocab_size]</span>
+</span><span id="__span-6-12"><a href="#__codelineno-6-12" id="__codelineno-6-12" name="__codelineno-6-12"></a><span class="sd">            temperatures: 温度参数，形状为 [batch_size]</span>
+</span><span id="__span-6-13"><a href="#__codelineno-6-13" id="__codelineno-6-13" name="__codelineno-6-13"></a>
+</span><span id="__span-6-14"><a href="#__codelineno-6-14" id="__codelineno-6-14" name="__codelineno-6-14"></a><span class="sd">        Returns:</span>
+</span><span id="__span-6-15"><a href="#__codelineno-6-15" id="__codelineno-6-15" name="__codelineno-6-15"></a><span class="sd">            sample_tokens: 采样的 token IDs，形状为 [batch_size]</span>
+</span><span id="__span-6-16"><a href="#__codelineno-6-16" id="__codelineno-6-16" name="__codelineno-6-16"></a><span class="sd">        """</span>
+</span><span id="__span-6-17"><a href="#__codelineno-6-17" id="__codelineno-6-17" name="__codelineno-6-17"></a>        <span class="c1"># 步骤 1：应用温度缩放</span>
+</span><span id="__span-6-18"><a href="#__codelineno-6-18" id="__codelineno-6-18" name="__codelineno-6-18"></a>        <span class="n">logits</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">.</span><span class="n">div_</span><span class="p">(</span><span class="n">temperatures</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+</span><span id="__span-6-19"><a href="#__codelineno-6-19" id="__codelineno-6-19" name="__codelineno-6-19"></a>
+</span><span id="__span-6-20"><a href="#__codelineno-6-20" id="__codelineno-6-20" name="__codelineno-6-20"></a>        <span class="c1"># 步骤 2：计算 softmax 概率分布</span>
+</span><span id="__span-6-21"><a href="#__codelineno-6-21" id="__codelineno-6-21" name="__codelineno-6-21"></a>        <span class="n">probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-6-22"><a href="#__codelineno-6-22" id="__codelineno-6-22" name="__codelineno-6-22"></a>
+</span><span id="__span-6-23"><a href="#__codelineno-6-23" id="__codelineno-6-23" name="__codelineno-6-23"></a>        <span class="c1"># 步骤 3-4：Gumbel-Max 技巧采样</span>
+</span><span id="__span-6-24"><a href="#__codelineno-6-24" id="__codelineno-6-24" name="__codelineno-6-24"></a>        <span class="n">sample_tokens</span> <span class="o">=</span> <span class="n">probs</span><span class="o">.</span><span class="n">div_</span><span class="p">(</span>
+</span><span id="__span-6-25"><a href="#__codelineno-6-25" id="__codelineno-6-25" name="__codelineno-6-25"></a>            <span class="n">torch</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span><span class="o">.</span><span class="n">exponential_</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">clamp_min_</span><span class="p">(</span><span class="mf">1e-10</span><span class="p">)</span>
+</span><span id="__span-6-26"><a href="#__codelineno-6-26" id="__codelineno-6-26" name="__codelineno-6-26"></a>        <span class="p">)</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-6-27"><a href="#__codelineno-6-27" id="__codelineno-6-27" name="__codelineno-6-27"></a>
+</span><span id="__span-6-28"><a href="#__codelineno-6-28" id="__codelineno-6-28" name="__codelineno-6-28"></a>        <span class="k">return</span> <span class="n">sample_tokens</span>
+</span></code></pre></div>
+<h3 id="32">3.2 逐步解析<a class="headerlink" href="#32" title="Permanent link">¶</a></h3>
+<h4 id="1">步骤 1：温度缩放<a class="headerlink" href="#1" title="Permanent link">¶</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a href="#__codelineno-7-1" id="__codelineno-7-1" name="__codelineno-7-1"></a><span class="n">logits</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">.</span><span class="n">div_</span><span class="p">(</span><span class="n">temperatures</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+</span></code></pre></div>
+<p><strong>图示</strong>：
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a href="#__codelineno-8-1" id="__codelineno-8-1" name="__codelineno-8-1"></a>logits:     [batch_size, vocab_size]
+</span><span id="__span-8-2"><a href="#__codelineno-8-2" id="__codelineno-8-2" name="__codelineno-8-2"></a>            └─ 例如：[4, 32000]
+</span><span id="__span-8-3"><a href="#__codelineno-8-3" id="__codelineno-8-3" name="__codelineno-8-3"></a>
+</span><span id="__span-8-4"><a href="#__codelineno-8-4" id="__codelineno-8-4" name="__codelineno-8-4"></a>temperatures: [batch_size]
+</span><span id="__span-8-5"><a href="#__codelineno-8-5" id="__codelineno-8-5" name="__codelineno-8-5"></a>              └─ 例如：[4]
+</span><span id="__span-8-6"><a href="#__codelineno-8-6" id="__codelineno-8-6" name="__codelineno-8-6"></a>
+</span><span id="__span-8-7"><a href="#__codelineno-8-7" id="__codelineno-8-7" name="__codelineno-8-7"></a>temperatures.unsqueeze(dim=1): [batch_size, 1]
+</span><span id="__span-8-8"><a href="#__codelineno-8-8" id="__codelineno-8-8" name="__codelineno-8-8"></a>                               └─ 例如：[4, 1]
+</span><span id="__span-8-9"><a href="#__codelineno-8-9" id="__codelineno-8-9" name="__codelineno-8-9"></a>
+</span><span id="__span-8-10"><a href="#__codelineno-8-10" id="__codelineno-8-10" name="__codelineno-8-10"></a>广播除法：
+</span><span id="__span-8-11"><a href="#__codelineno-8-11" id="__codelineno-8-11" name="__codelineno-8-11"></a>[4, 32000] / [4, 1] → [4, 32000]
+</span><span id="__span-8-12"><a href="#__codelineno-8-12" id="__codelineno-8-12" name="__codelineno-8-12"></a>
+</span><span id="__span-8-13"><a href="#__codelineno-8-13" id="__codelineno-8-13" name="__codelineno-8-13"></a>每个序列的 logits 除以自己的温度值
+</span></code></pre></div></p>
+<p><strong>温度的作用</strong>：
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a href="#__codelineno-9-1" id="__codelineno-9-1" name="__codelineno-9-1"></a>temperature &gt; 1:  分布更平滑，增加随机性
+</span><span id="__span-9-2"><a href="#__codelineno-9-2" id="__codelineno-9-2" name="__codelineno-9-2"></a>                  ┌─────────────────────────────┐
+</span><span id="__span-9-3"><a href="#__codelineno-9-3" id="__codelineno-9-3" name="__codelineno-9-3"></a>                  │  原始：[0.6, 0.3, 0.1]      │
+</span><span id="__span-9-4"><a href="#__codelineno-9-4" id="__codelineno-9-4" name="__codelineno-9-4"></a>                  │  T=2:  [0.4, 0.35, 0.25]    │ ← 更均匀
+</span><span id="__span-9-5"><a href="#__codelineno-9-5" id="__codelineno-9-5" name="__codelineno-9-5"></a>                  └─────────────────────────────┘
+</span><span id="__span-9-6"><a href="#__codelineno-9-6" id="__codelineno-9-6" name="__codelineno-9-6"></a>
+</span><span id="__span-9-7"><a href="#__codelineno-9-7" id="__codelineno-9-7" name="__codelineno-9-7"></a>temperature &lt; 1:  分布更尖锐，减少随机性
+</span><span id="__span-9-8"><a href="#__codelineno-9-8" id="__codelineno-9-8" name="__codelineno-9-8"></a>                  ┌─────────────────────────────┐
+</span><span id="__span-9-9"><a href="#__codelineno-9-9" id="__codelineno-9-9" name="__codelineno-9-9"></a>                  │  原始：[0.6, 0.3, 0.1]      │
+</span><span id="__span-9-10"><a href="#__codelineno-9-10" id="__codelineno-9-10" name="__codelineno-9-10"></a>                  │  T=0.5: [0.8, 0.15, 0.05]   │ ← 更集中
+</span><span id="__span-9-11"><a href="#__codelineno-9-11" id="__codelineno-9-11" name="__codelineno-9-11"></a>                  └─────────────────────────────┘
+</span><span id="__span-9-12"><a href="#__codelineno-9-12" id="__codelineno-9-12" name="__codelineno-9-12"></a>
+</span><span id="__span-9-13"><a href="#__codelineno-9-13" id="__codelineno-9-13" name="__codelineno-9-13"></a>temperature = 1:  原始分布
+</span></code></pre></div></p>
+<h4 id="2softmax">步骤 2：Softmax 概率<a class="headerlink" href="#2softmax" title="Permanent link">¶</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a href="#__codelineno-10-1" id="__codelineno-10-1" name="__codelineno-10-1"></a><span class="n">probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>计算</strong>：
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a href="#__codelineno-11-1" id="__codelineno-11-1" name="__codelineno-11-1"></a>logits: [2.0, 1.0, 0.0]
+</span><span id="__span-11-2"><a href="#__codelineno-11-2" id="__codelineno-11-2" name="__codelineno-11-2"></a>
+</span><span id="__span-11-3"><a href="#__codelineno-11-3" id="__codelineno-11-3" name="__codelineno-11-3"></a>softmax:
+</span><span id="__span-11-4"><a href="#__codelineno-11-4" id="__codelineno-11-4" name="__codelineno-11-4"></a>p₀ = exp(2) / (exp(2) + exp(1) + exp(0)) = 7.39 / 10.15 = 0.728
+</span><span id="__span-11-5"><a href="#__codelineno-11-5" id="__codelineno-11-5" name="__codelineno-11-5"></a>p₁ = exp(1) / (exp(2) + exp(1) + exp(0)) = 2.72 / 10.15 = 0.268
+</span><span id="__span-11-6"><a href="#__codelineno-11-6" id="__codelineno-11-6" name="__codelineno-11-6"></a>p₂ = exp(0) / (exp(2) + exp(1) + exp(0)) = 1.00 / 10.15 = 0.098
+</span><span id="__span-11-7"><a href="#__codelineno-11-7" id="__codelineno-11-7" name="__codelineno-11-7"></a>
+</span><span id="__span-11-8"><a href="#__codelineno-11-8" id="__codelineno-11-8" name="__codelineno-11-8"></a>probs: [0.728, 0.268, 0.098]
+</span><span id="__span-11-9"><a href="#__codelineno-11-9" id="__codelineno-11-9" name="__codelineno-11-9"></a>验证：0.728 + 0.268 + 0.098 = 1.0 ✓
+</span></code></pre></div></p>
+<h4 id="3-4gumbel-max">步骤 3-4：Gumbel-Max 采样<a class="headerlink" href="#3-4gumbel-max" title="Permanent link">¶</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a href="#__codelineno-12-1" id="__codelineno-12-1" name="__codelineno-12-1"></a><span class="n">sample_tokens</span> <span class="o">=</span> <span class="n">probs</span><span class="o">.</span><span class="n">div_</span><span class="p">(</span>
+</span><span id="__span-12-2"><a href="#__codelineno-12-2" id="__codelineno-12-2" name="__codelineno-12-2"></a>    <span class="n">torch</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span><span class="o">.</span><span class="n">exponential_</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">clamp_min_</span><span class="p">(</span><span class="mf">1e-10</span><span class="p">)</span>
+</span><span id="__span-12-3"><a href="#__codelineno-12-3" id="__codelineno-12-3" name="__codelineno-12-3"></a><span class="p">)</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>逐步分解</strong>：
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a href="#__codelineno-13-1" id="__codelineno-13-1" name="__codelineno-13-1"></a><span class="c1"># 1. 生成指数分布噪声</span>
+</span><span id="__span-13-2"><a href="#__codelineno-13-2" id="__codelineno-13-2" name="__codelineno-13-2"></a><span class="n">gumbel_noise</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span><span class="o">.</span><span class="n">exponential_</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-13-3"><a href="#__codelineno-13-3" id="__codelineno-13-3" name="__codelineno-13-3"></a><span class="c1"># 例如：[0.5, 2.3, 0.1]</span>
+</span><span id="__span-13-4"><a href="#__codelineno-13-4" id="__codelineno-13-4" name="__codelineno-13-4"></a>
+</span><span id="__span-13-5"><a href="#__codelineno-13-5" id="__codelineno-13-5" name="__codelineno-13-5"></a><span class="c1"># 2. 防止除零（数值稳定性）</span>
+</span><span id="__span-13-6"><a href="#__codelineno-13-6" id="__codelineno-13-6" name="__codelineno-13-6"></a><span class="n">gumbel_noise</span> <span class="o">=</span> <span class="n">gumbel_noise</span><span class="o">.</span><span class="n">clamp_min_</span><span class="p">(</span><span class="mf">1e-10</span><span class="p">)</span>
+</span><span id="__span-13-7"><a href="#__codelineno-13-7" id="__codelineno-13-7" name="__codelineno-13-7"></a><span class="c1"># 最小值为 1e-10</span>
+</span><span id="__span-13-8"><a href="#__codelineno-13-8" id="__codelineno-13-8" name="__codelineno-13-8"></a>
+</span><span id="__span-13-9"><a href="#__codelineno-13-9" id="__codelineno-13-9" name="__codelineno-13-9"></a><span class="c1"># 3. 概率除以噪声</span>
+</span><span id="__span-13-10"><a href="#__codelineno-13-10" id="__codelineno-13-10" name="__codelineno-13-10"></a><span class="n">scores</span> <span class="o">=</span> <span class="n">probs</span> <span class="o">/</span> <span class="n">gumbel_noise</span>
+</span><span id="__span-13-11"><a href="#__codelineno-13-11" id="__codelineno-13-11" name="__codelineno-13-11"></a><span class="c1"># 例如：[0.728/0.5, 0.268/2.3, 0.098/0.1]</span>
+</span><span id="__span-13-12"><a href="#__codelineno-13-12" id="__codelineno-13-12" name="__codelineno-13-12"></a><span class="c1">#      = [1.456, 0.117, 0.98]</span>
+</span><span id="__span-13-13"><a href="#__codelineno-13-13" id="__codelineno-13-13" name="__codelineno-13-13"></a>
+</span><span id="__span-13-14"><a href="#__codelineno-13-14" id="__codelineno-13-14" name="__codelineno-13-14"></a><span class="c1"># 4. 取 argmax</span>
+</span><span id="__span-13-15"><a href="#__codelineno-13-15" id="__codelineno-13-15" name="__codelineno-13-15"></a><span class="n">sample</span> <span class="o">=</span> <span class="n">argmax</span><span class="p">(</span><span class="n">scores</span><span class="p">)</span>
+</span><span id="__span-13-16"><a href="#__codelineno-13-16" id="__codelineno-13-16" name="__codelineno-13-16"></a><span class="c1"># argmax([1.456, 0.117, 0.98]) = 0</span>
+</span><span id="__span-13-17"><a href="#__codelineno-13-17" id="__codelineno-13-17" name="__codelineno-13-17"></a><span class="c1"># 采样得到 token 0</span>
+</span></code></pre></div></p>
+<p><strong>为什么这样等价于多项式采样？</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a href="#__codelineno-14-1" id="__codelineno-14-1" name="__codelineno-14-1"></a>数学原理：
+</span><span id="__span-14-2"><a href="#__codelineno-14-2" id="__codelineno-14-2" name="__codelineno-14-2"></a>如果 g ~ Exponential(1)，则 1/g 服从 Fréchet 分布
+</span><span id="__span-14-3"><a href="#__codelineno-14-3" id="__codelineno-14-3" name="__codelineno-14-3"></a>
+</span><span id="__span-14-4"><a href="#__codelineno-14-4" id="__codelineno-14-4" name="__codelineno-14-4"></a>P(argmax_i(probs_i / g_i) = k) = probs_k
+</span><span id="__span-14-5"><a href="#__codelineno-14-5" id="__codelineno-14-5" name="__codelineno-14-5"></a>
+</span><span id="__span-14-6"><a href="#__codelineno-14-6" id="__codelineno-14-6" name="__codelineno-14-6"></a>因此，argmax(probs / g) 等价于从 probs 中多项式采样！
+</span></code></pre></div>
+<hr/>
+<h2 id="_4">四、温度参数详解<a class="headerlink" href="#_4" title="Permanent link">¶</a></h2>
+<h3 id="41">4.1 温度的数学作用<a class="headerlink" href="#41" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a href="#__codelineno-15-1" id="__codelineno-15-1" name="__codelineno-15-1"></a>softmax 公式：
+</span><span id="__span-15-2"><a href="#__codelineno-15-2" id="__codelineno-15-2" name="__codelineno-15-2"></a>p_i = exp(logits_i / T) / Σⱼ exp(logits_j / T)
+</span><span id="__span-15-3"><a href="#__codelineno-15-3" id="__codelineno-15-3" name="__codelineno-15-3"></a>
+</span><span id="__span-15-4"><a href="#__codelineno-15-4" id="__codelineno-15-4" name="__codelineno-15-4"></a>温度 T 的影响：
+</span></code></pre></div>
+<h3 id="42">4.2 温度效果对比<a class="headerlink" href="#42" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a href="#__codelineno-16-1" id="__codelineno-16-1" name="__codelineno-16-1"></a>假设 logits = [3.0, 2.0, 1.0]
+</span><span id="__span-16-2"><a href="#__codelineno-16-2" id="__codelineno-16-2" name="__codelineno-16-2"></a>
+</span><span id="__span-16-3"><a href="#__codelineno-16-3" id="__codelineno-16-3" name="__codelineno-16-3"></a>T = 0.1 (极低温度):
+</span><span id="__span-16-4"><a href="#__codelineno-16-4" id="__codelineno-16-4" name="__codelineno-16-4"></a>─────────────────────────────────────────────────────────
+</span><span id="__span-16-5"><a href="#__codelineno-16-5" id="__codelineno-16-5" name="__codelineno-16-5"></a>logits / T = [30, 20, 10]
+</span><span id="__span-16-6"><a href="#__codelineno-16-6" id="__codelineno-16-6" name="__codelineno-16-6"></a>probs = [0.99995, 0.00005, 0.0]
+</span><span id="__span-16-7"><a href="#__codelineno-16-7" id="__codelineno-16-7" name="__codelineno-16-7"></a>效果：几乎确定选择 token 0（贪婪解码）
+</span><span id="__span-16-8"><a href="#__codelineno-16-8" id="__codelineno-16-8" name="__codelineno-16-8"></a>
+</span><span id="__span-16-9"><a href="#__codelineno-16-9" id="__codelineno-16-9" name="__codelineno-16-9"></a>T = 0.5 (低温):
+</span><span id="__span-16-10"><a href="#__codelineno-16-10" id="__codelineno-16-10" name="__codelineno-16-10"></a>─────────────────────────────────────────────────────────
+</span><span id="__span-16-11"><a href="#__codelineno-16-11" id="__codelineno-16-11" name="__codelineno-16-11"></a>logits / T = [6, 4, 2]
+</span><span id="__span-16-12"><a href="#__codelineno-16-12" id="__codelineno-16-12" name="__codelineno-16-12"></a>probs = [0.88, 0.12, 0.01]
+</span><span id="__span-16-13"><a href="#__codelineno-16-13" id="__codelineno-16-13" name="__codelineno-16-13"></a>效果：高度倾向于 token 0，但仍有小概率选择其他
+</span><span id="__span-16-14"><a href="#__codelineno-16-14" id="__codelineno-16-14" name="__codelineno-16-14"></a>
+</span><span id="__span-16-15"><a href="#__codelineno-16-15" id="__codelineno-16-15" name="__codelineno-16-15"></a>T = 1.0 (标准温度):
+</span><span id="__span-16-16"><a href="#__codelineno-16-16" id="__codelineno-16-16" name="__codelineno-16-16"></a>─────────────────────────────────────────────────────────
+</span><span id="__span-16-17"><a href="#__codelineno-16-17" id="__codelineno-16-17" name="__codelineno-16-17"></a>logits / T = [3, 2, 1]
+</span><span id="__span-16-18"><a href="#__codelineno-16-18" id="__codelineno-16-18" name="__codelineno-16-18"></a>probs = [0.67, 0.24, 0.09]
+</span><span id="__span-16-19"><a href="#__codelineno-16-19" id="__codelineno-16-19" name="__codelineno-16-19"></a>效果：标准多项式采样
+</span><span id="__span-16-20"><a href="#__codelineno-16-20" id="__codelineno-16-20" name="__codelineno-16-20"></a>
+</span><span id="__span-16-21"><a href="#__codelineno-16-21" id="__codelineno-16-21" name="__codelineno-16-21"></a>T = 1.5 (高温):
+</span><span id="__span-16-22"><a href="#__codelineno-16-22" id="__codelineno-16-22" name="__codelineno-16-22"></a>─────────────────────────────────────────────────────────
+</span><span id="__span-16-23"><a href="#__codelineno-16-23" id="__codelineno-16-23" name="__codelineno-16-23"></a>logits / T = [2, 1.33, 0.67]
+</span><span id="__span-16-24"><a href="#__codelineno-16-24" id="__codelineno-16-24" name="__codelineno-16-24"></a>probs = [0.51, 0.26, 0.23]
+</span><span id="__span-16-25"><a href="#__codelineno-16-25" id="__codelineno-16-25" name="__codelineno-16-25"></a>效果：分布更均匀，随机性增加
+</span><span id="__span-16-26"><a href="#__codelineno-16-26" id="__codelineno-16-26" name="__codelineno-16-26"></a>
+</span><span id="__span-16-27"><a href="#__codelineno-16-27" id="__codelineno-16-27" name="__codelineno-16-27"></a>T = 5.0 (极高温度):
+</span><span id="__span-16-28"><a href="#__codelineno-16-28" id="__codelineno-16-28" name="__codelineno-16-28"></a>─────────────────────────────────────────────────────────
+</span><span id="__span-16-29"><a href="#__codelineno-16-29" id="__codelineno-16-29" name="__codelineno-16-29"></a>logits / T = [0.6, 0.4, 0.2]
+</span><span id="__span-16-30"><a href="#__codelineno-16-30" id="__codelineno-16-30" name="__codelineno-16-30"></a>probs = [0.38, 0.33, 0.29]
+</span><span id="__span-16-31"><a href="#__codelineno-16-31" id="__codelineno-16-31" name="__codelineno-16-31"></a>效果：接近均匀分布，非常随机
+</span></code></pre></div>
+<h3 id="43">4.3 温度选择建议<a class="headerlink" href="#43" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>应用场景</th>
+<th>推荐温度</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>事实问答</strong></td>
+<td>0.1 - 0.3</td>
+<td>需要准确性，接近贪婪解码</td>
+</tr>
+<tr>
+<td><strong>代码生成</strong></td>
+<td>0.2 - 0.5</td>
+<td>需要语法正确性</td>
+</tr>
+<tr>
+<td><strong>创意写作</strong></td>
+<td>0.7 - 1.0</td>
+<td>需要多样性和创造力</td>
+</tr>
+<tr>
+<td><strong>对话聊天</strong></td>
+<td>0.6 - 0.9</td>
+<td>平衡有趣性和连贯性</td>
+</tr>
+<tr>
+<td><strong>头脑风暴</strong></td>
+<td>1.0 - 1.5</td>
+<td>需要高度多样性</td>
+</tr>
+</tbody>
+</table>
+<hr/>
+<h2 id="_5">五、完整采样流程<a class="headerlink" href="#_5" title="Permanent link">¶</a></h2>
+<h3 id="51-logits-token">5.1 从 logits 到 token<a class="headerlink" href="#51-logits-token" title="Permanent link">¶</a></h3>
+<pre class="mermaid"><code>flowchart LR
+    subgraph 输入
+        Logits[logits&lt;br/&gt;batch × vocab]
+        Temp[temperatures&lt;br/&gt;batch]
+    end
+
+    subgraph 温度缩放
+        Div[除以温度]
+        Scaled[scaled_logits&lt;br/&gt;batch × vocab]
+    end
+
+    subgraph 概率计算
+        Softmax[Softmax]
+        Probs[probs&lt;br/&gt;batch × vocab]
+    end
+
+    subgraph Gumbel 噪声
+        Exp[Exponential(1)]
+        Clamp[Clamp Min]
+        Noise[gumbel_noise&lt;br/&gt;batch × vocab]
+    end
+
+    subgraph 采样
+        Div2[概率 / 噪声]
+        Scores[scores&lt;br/&gt;batch × vocab]
+        ArgMax[argmax]
+        Tokens[tokens&lt;br/&gt;batch]
+    end
+
+    Logits --&gt; Div
+    Temp --&gt; Div
+    Div --&gt; Scaled --&gt; Softmax --&gt; Probs
+    Probs --&gt; Div2
+    Exp --&gt; Clamp --&gt; Noise --&gt; Div2
+    Div2 --&gt; Scores --&gt; ArgMax --&gt; Tokens</code></pre>
+<h3 id="52">5.2 数值示例<a class="headerlink" href="#52" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a href="#__codelineno-17-1" id="__codelineno-17-1" name="__codelineno-17-1"></a>输入：
+</span><span id="__span-17-2"><a href="#__codelineno-17-2" id="__codelineno-17-2" name="__codelineno-17-2"></a>logits = [[3.0, 2.0, 1.0],    # 序列 0
+</span><span id="__span-17-3"><a href="#__codelineno-17-3" id="__codelineno-17-3" name="__codelineno-17-3"></a>          [1.0, 3.0, 2.0]]    # 序列 1
+</span><span id="__span-17-4"><a href="#__codelineno-17-4" id="__codelineno-17-4" name="__codelineno-17-4"></a>temperatures = [0.5, 1.0]
+</span><span id="__span-17-5"><a href="#__codelineno-17-5" id="__codelineno-17-5" name="__codelineno-17-5"></a>
+</span><span id="__span-17-6"><a href="#__codelineno-17-6" id="__codelineno-17-6" name="__codelineno-17-6"></a>步骤 1：温度缩放
+</span><span id="__span-17-7"><a href="#__codelineno-17-7" id="__codelineno-17-7" name="__codelineno-17-7"></a>─────────────────────────────────────────────────────────
+</span><span id="__span-17-8"><a href="#__codelineno-17-8" id="__codelineno-17-8" name="__codelineno-17-8"></a>序列 0: logits / 0.5 = [6.0, 4.0, 2.0]
+</span><span id="__span-17-9"><a href="#__codelineno-17-9" id="__codelineno-17-9" name="__codelineno-17-9"></a>序列 1: logits / 1.0 = [1.0, 3.0, 2.0]
+</span><span id="__span-17-10"><a href="#__codelineno-17-10" id="__codelineno-17-10" name="__codelineno-17-10"></a>
+</span><span id="__span-17-11"><a href="#__codelineno-17-11" id="__codelineno-17-11" name="__codelineno-17-11"></a>步骤 2：Softmax
+</span><span id="__span-17-12"><a href="#__codelineno-17-12" id="__codelineno-17-12" name="__codelineno-17-12"></a>─────────────────────────────────────────────────────────
+</span><span id="__span-17-13"><a href="#__codelineno-17-13" id="__codelineno-17-13" name="__codelineno-17-13"></a>序列 0: probs = [0.88, 0.12, 0.01]
+</span><span id="__span-17-14"><a href="#__codelineno-17-14" id="__codelineno-17-14" name="__codelineno-17-14"></a>序列 1: probs = [0.12, 0.67, 0.21]
+</span><span id="__span-17-15"><a href="#__codelineno-17-15" id="__codelineno-17-15" name="__codelineno-17-15"></a>
+</span><span id="__span-17-16"><a href="#__codelineno-17-16" id="__codelineno-17-16" name="__codelineno-17-16"></a>步骤 3：生成 Gumbel 噪声
+</span><span id="__span-17-17"><a href="#__codelineno-17-17" id="__codelineno-17-17" name="__codelineno-17-17"></a>─────────────────────────────────────────────────────────
+</span><span id="__span-17-18"><a href="#__codelineno-17-18" id="__codelineno-17-18" name="__codelineno-17-18"></a>序列 0: noise = [0.3, 1.5, 0.8]
+</span><span id="__span-17-19"><a href="#__codelineno-17-19" id="__codelineno-17-19" name="__codelineno-17-19"></a>序列 1: noise = [2.1, 0.4, 1.2]
+</span><span id="__span-17-20"><a href="#__codelineno-17-20" id="__codelineno-17-20" name="__codelineno-17-20"></a>
+</span><span id="__span-17-21"><a href="#__codelineno-17-21" id="__codelineno-17-21" name="__codelineno-17-21"></a>步骤 4：计算 scores = probs / noise
+</span><span id="__span-17-22"><a href="#__codelineno-17-22" id="__codelineno-17-22" name="__codelineno-17-22"></a>─────────────────────────────────────────────────────────
+</span><span id="__span-17-23"><a href="#__codelineno-17-23" id="__codelineno-17-23" name="__codelineno-17-23"></a>序列 0: scores = [0.88/0.3, 0.12/1.5, 0.01/0.8]
+</span><span id="__span-17-24"><a href="#__codelineno-17-24" id="__codelineno-17-24" name="__codelineno-17-24"></a>              = [2.93, 0.08, 0.01]
+</span><span id="__span-17-25"><a href="#__codelineno-17-25" id="__codelineno-17-25" name="__codelineno-17-25"></a>序列 1: scores = [0.12/2.1, 0.67/0.4, 0.21/1.2]
+</span><span id="__span-17-26"><a href="#__codelineno-17-26" id="__codelineno-17-26" name="__codelineno-17-26"></a>              = [0.06, 1.68, 0.18]
+</span><span id="__span-17-27"><a href="#__codelineno-17-27" id="__codelineno-17-27" name="__codelineno-17-27"></a>
+</span><span id="__span-17-28"><a href="#__codelineno-17-28" id="__codelineno-17-28" name="__codelineno-17-28"></a>步骤 5：ArgMax
+</span><span id="__span-17-29"><a href="#__codelineno-17-29" id="__codelineno-17-29" name="__codelineno-17-29"></a>─────────────────────────────────────────────────────────
+</span><span id="__span-17-30"><a href="#__codelineno-17-30" id="__codelineno-17-30" name="__codelineno-17-30"></a>序列 0: argmax([2.93, 0.08, 0.01]) = 0
+</span><span id="__span-17-31"><a href="#__codelineno-17-31" id="__codelineno-17-31" name="__codelineno-17-31"></a>序列 1: argmax([0.06, 1.68, 0.18]) = 1
+</span><span id="__span-17-32"><a href="#__codelineno-17-32" id="__codelineno-17-32" name="__codelineno-17-32"></a>
+</span><span id="__span-17-33"><a href="#__codelineno-17-33" id="__codelineno-17-33" name="__codelineno-17-33"></a>输出：
+</span><span id="__span-17-34"><a href="#__codelineno-17-34" id="__codelineno-17-34" name="__codelineno-17-34"></a>tokens = [0, 1]
+</span></code></pre></div>
+<hr/>
+<h2 id="_6">六、关键问题解答<a class="headerlink" href="#_6" title="Permanent link">¶</a></h2>
+<h3 id="prompt">❓ 多次相同的 prompt 生成过程会不会生成相同的回答？<a class="headerlink" href="#prompt" title="Permanent link">¶</a></h3>
+<p><strong>答案：不一定，取决于温度参数。</strong></p>
+<h4 id="1temperature-0-001">情况 1：temperature = 0（或极低，如 0.01）<a class="headerlink" href="#1temperature-0-001" title="Permanent link">¶</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a href="#__codelineno-18-1" id="__codelineno-18-1" name="__codelineno-18-1"></a>行为：接近贪婪解码（Greedy Decoding）
+</span><span id="__span-18-2"><a href="#__codelineno-18-2" id="__codelineno-18-2" name="__codelineno-18-2"></a>结果：每次生成相同的输出
+</span><span id="__span-18-3"><a href="#__codelineno-18-3" id="__codelineno-18-3" name="__codelineno-18-3"></a>
+</span><span id="__span-18-4"><a href="#__codelineno-18-4" id="__codelineno-18-4" name="__codelineno-18-4"></a>原因：
+</span><span id="__span-18-5"><a href="#__codelineno-18-5" id="__codelineno-18-5" name="__codelineno-18-5"></a>- 温度极低时，softmax 分布趋近于 one-hot
+</span><span id="__span-18-6"><a href="#__codelineno-18-6" id="__codelineno-18-6" name="__codelineno-18-6"></a>- 概率最高的 token 几乎总是被选中
+</span><span id="__span-18-7"><a href="#__codelineno-18-7" id="__codelineno-18-7" name="__codelineno-18-7"></a>- 采样变成确定性过程
+</span><span id="__span-18-8"><a href="#__codelineno-18-8" id="__codelineno-18-8" name="__codelineno-18-8"></a>
+</span><span id="__span-18-9"><a href="#__codelineno-18-9" id="__codelineno-18-9" name="__codelineno-18-9"></a>示例：
+</span><span id="__span-18-10"><a href="#__codelineno-18-10" id="__codelineno-18-10" name="__codelineno-18-10"></a>prompt: "Hello, how are"
+</span><span id="__span-18-11"><a href="#__codelineno-18-11" id="__codelineno-18-11" name="__codelineno-18-11"></a>输出 1: "Hello, how are you?"
+</span><span id="__span-18-12"><a href="#__codelineno-18-12" id="__codelineno-18-12" name="__codelineno-18-12"></a>输出 2: "Hello, how are you?"
+</span><span id="__span-18-13"><a href="#__codelineno-18-13" id="__codelineno-18-13" name="__codelineno-18-13"></a>输出 3: "Hello, how are you?"
+</span><span id="__span-18-14"><a href="#__codelineno-18-14" id="__codelineno-18-14" name="__codelineno-18-14"></a>        └─ 完全相同
+</span></code></pre></div>
+<h4 id="2temperature-0-06-10">情况 2：temperature &gt; 0（如 0.6-1.0）<a class="headerlink" href="#2temperature-0-06-10" title="Permanent link">¶</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a href="#__codelineno-19-1" id="__codelineno-19-1" name="__codelineno-19-1"></a>行为：多项式采样（Multinomial Sampling）
+</span><span id="__span-19-2"><a href="#__codelineno-19-2" id="__codelineno-19-2" name="__codelineno-19-2"></a>结果：每次生成可能不同
+</span><span id="__span-19-3"><a href="#__codelineno-19-3" id="__codelineno-19-3" name="__codelineno-19-3"></a>
+</span><span id="__span-19-4"><a href="#__codelineno-19-4" id="__codelineno-19-4" name="__codelineno-19-4"></a>原因：
+</span><span id="__span-19-5"><a href="#__codelineno-19-5" id="__codelineno-19-5" name="__codelineno-19-5"></a>- 从概率分布中随机采样
+</span><span id="__span-19-6"><a href="#__codelineno-19-6" id="__codelineno-19-6" name="__codelineno-19-6"></a>- 即使 logits 相同，采样结果也可能不同
+</span><span id="__span-19-7"><a href="#__codelineno-19-7" id="__codelineno-19-7" name="__codelineno-19-7"></a>- 这是真正的随机过程
+</span><span id="__span-19-8"><a href="#__codelineno-19-8" id="__codelineno-19-8" name="__codelineno-19-8"></a>
+</span><span id="__span-19-9"><a href="#__codelineno-19-9" id="__codelineno-19-9" name="__codelineno-19-9"></a>示例：
+</span><span id="__span-19-10"><a href="#__codelineno-19-10" id="__codelineno-19-10" name="__codelineno-19-10"></a>prompt: "Hello, how are"
+</span><span id="__span-19-11"><a href="#__codelineno-19-11" id="__codelineno-19-11" name="__codelineno-19-11"></a>temperature = 0.8
+</span><span id="__span-19-12"><a href="#__codelineno-19-12" id="__codelineno-19-12" name="__codelineno-19-12"></a>
+</span><span id="__span-19-13"><a href="#__codelineno-19-13" id="__codelineno-19-13" name="__codelineno-19-13"></a>输出 1: "Hello, how are you today?"
+</span><span id="__span-19-14"><a href="#__codelineno-19-14" id="__codelineno-19-14" name="__codelineno-19-14"></a>输出 2: "Hello, how are you doing?"
+</span><span id="__span-19-15"><a href="#__codelineno-19-15" id="__codelineno-19-15" name="__codelineno-19-15"></a>输出 3: "Hello, how are you?"
+</span><span id="__span-19-16"><a href="#__codelineno-19-16" id="__codelineno-19-16" name="__codelineno-19-16"></a>        └─ 可能不同
+</span></code></pre></div>
+<h4 id="_7">实验验证<a class="headerlink" href="#_7" title="Permanent link">¶</a></h4>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-20-1"><a href="#__codelineno-20-1" id="__codelineno-20-1" name="__codelineno-20-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+</span><span id="__span-20-2"><a href="#__codelineno-20-2" id="__codelineno-20-2" name="__codelineno-20-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">nanovllm.layers.sampler</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sampler</span>
+</span><span id="__span-20-3"><a href="#__codelineno-20-3" id="__codelineno-20-3" name="__codelineno-20-3"></a>
+</span><span id="__span-20-4"><a href="#__codelineno-20-4" id="__codelineno-20-4" name="__codelineno-20-4"></a><span class="n">sampler</span> <span class="o">=</span> <span class="n">Sampler</span><span class="p">()</span>
+</span><span id="__span-20-5"><a href="#__codelineno-20-5" id="__codelineno-20-5" name="__codelineno-20-5"></a>
+</span><span id="__span-20-6"><a href="#__codelineno-20-6" id="__codelineno-20-6" name="__codelineno-20-6"></a><span class="c1"># 相同的 logits（模拟相同 prompt 的输出）</span>
+</span><span id="__span-20-7"><a href="#__codelineno-20-7" id="__codelineno-20-7" name="__codelineno-20-7"></a><span class="n">logits</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">32000</span><span class="p">)</span>  <span class="c1"># [1, vocab_size]</span>
+</span><span id="__span-20-8"><a href="#__codelineno-20-8" id="__codelineno-20-8" name="__codelineno-20-8"></a>
+</span><span id="__span-20-9"><a href="#__codelineno-20-9" id="__codelineno-20-9" name="__codelineno-20-9"></a><span class="c1"># 不同温度下的采样结果</span>
+</span><span id="__span-20-10"><a href="#__codelineno-20-10" id="__codelineno-20-10" name="__codelineno-20-10"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"Temperature = 0.1:"</span><span class="p">)</span>
+</span><span id="__span-20-11"><a href="#__codelineno-20-11" id="__codelineno-20-11" name="__codelineno-20-11"></a><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+</span><span id="__span-20-12"><a href="#__codelineno-20-12" id="__codelineno-20-12" name="__codelineno-20-12"></a>    <span class="n">temps</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">0.1</span><span class="p">])</span>
+</span><span id="__span-20-13"><a href="#__codelineno-20-13" id="__codelineno-20-13" name="__codelineno-20-13"></a>    <span class="n">token</span> <span class="o">=</span> <span class="n">sampler</span><span class="p">(</span><span class="n">logits</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span> <span class="n">temps</span><span class="p">)</span>
+</span><span id="__span-20-14"><a href="#__codelineno-20-14" id="__codelineno-20-14" name="__codelineno-20-14"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  Sample </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">token</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="__span-20-15"><a href="#__codelineno-20-15" id="__codelineno-20-15" name="__codelineno-20-15"></a><span class="c1"># 可能输出：[1234, 1234, 1234, 1234, 1234] ← 几乎相同</span>
+</span><span id="__span-20-16"><a href="#__codelineno-20-16" id="__codelineno-20-16" name="__codelineno-20-16"></a>
+</span><span id="__span-20-17"><a href="#__codelineno-20-17" id="__codelineno-20-17" name="__codelineno-20-17"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Temperature = 0.8:"</span><span class="p">)</span>
+</span><span id="__span-20-18"><a href="#__codelineno-20-18" id="__codelineno-20-18" name="__codelineno-20-18"></a><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+</span><span id="__span-20-19"><a href="#__codelineno-20-19" id="__codelineno-20-19" name="__codelineno-20-19"></a>    <span class="n">temps</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">0.8</span><span class="p">])</span>
+</span><span id="__span-20-20"><a href="#__codelineno-20-20" id="__codelineno-20-20" name="__codelineno-20-20"></a>    <span class="n">token</span> <span class="o">=</span> <span class="n">sampler</span><span class="p">(</span><span class="n">logits</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span> <span class="n">temps</span><span class="p">)</span>
+</span><span id="__span-20-21"><a href="#__codelineno-20-21" id="__codelineno-20-21" name="__codelineno-20-21"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  Sample </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">token</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="__span-20-22"><a href="#__codelineno-20-22" id="__codelineno-20-22" name="__codelineno-20-22"></a><span class="c1"># 可能输出：[1234, 5678, 1234, 9012, 3456] ← 可能不同</span>
+</span><span id="__span-20-23"><a href="#__codelineno-20-23" id="__codelineno-20-23" name="__codelineno-20-23"></a>
+</span><span id="__span-20-24"><a href="#__codelineno-20-24" id="__codelineno-20-24" name="__codelineno-20-24"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Temperature = 1.5:"</span><span class="p">)</span>
+</span><span id="__span-20-25"><a href="#__codelineno-20-25" id="__codelineno-20-25" name="__codelineno-20-25"></a><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+</span><span id="__span-20-26"><a href="#__codelineno-20-26" id="__codelineno-20-26" name="__codelineno-20-26"></a>    <span class="n">temps</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">1.5</span><span class="p">])</span>
+</span><span id="__span-20-27"><a href="#__codelineno-20-27" id="__codelineno-20-27" name="__codelineno-20-27"></a>    <span class="n">token</span> <span class="o">=</span> <span class="n">sampler</span><span class="p">(</span><span class="n">logits</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span> <span class="n">temps</span><span class="p">)</span>
+</span><span id="__span-20-28"><a href="#__codelineno-20-28" id="__codelineno-20-28" name="__codelineno-20-28"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  Sample </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">token</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="__span-20-29"><a href="#__codelineno-20-29" id="__codelineno-20-29" name="__codelineno-20-29"></a><span class="c1"># 可能输出：[1234, 5678, 9012, 3456, 7890] ← 更加多样</span>
+</span></code></pre></div>
+<h4 id="_8">为什么会有随机性？<a class="headerlink" href="#_8" title="Permanent link">¶</a></h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a href="#__codelineno-21-1" id="__codelineno-21-1" name="__codelineno-21-1"></a>随机性来源：Gumbel 噪声
+</span><span id="__span-21-2"><a href="#__codelineno-21-2" id="__codelineno-21-2" name="__codelineno-21-2"></a>
+</span><span id="__span-21-3"><a href="#__codelineno-21-3" id="__codelineno-21-3" name="__codelineno-21-3"></a>sampler.py 代码：
+</span><span id="__span-21-4"><a href="#__codelineno-21-4" id="__codelineno-21-4" name="__codelineno-21-4"></a>torch.empty_like(probs).exponential_(1)
+</span><span id="__span-21-5"><a href="#__codelineno-21-5" id="__codelineno-21-5" name="__codelineno-21-5"></a>                    └─ 生成指数分布随机数
+</span><span id="__span-21-6"><a href="#__codelineno-21-6" id="__codelineno-21-6" name="__codelineno-21-6"></a>
+</span><span id="__span-21-7"><a href="#__codelineno-21-7" id="__codelineno-21-7" name="__codelineno-21-7"></a>每次调用都会生成新的随机噪声：
+</span><span id="__span-21-8"><a href="#__codelineno-21-8" id="__codelineno-21-8" name="__codelineno-21-8"></a>Run 1: noise = [0.5, 2.3, 0.1, ...]
+</span><span id="__span-21-9"><a href="#__codelineno-21-9" id="__codelineno-21-9" name="__codelineno-21-9"></a>Run 2: noise = [1.2, 0.8, 3.5, ...]
+</span><span id="__span-21-10"><a href="#__codelineno-21-10" id="__codelineno-21-10" name="__codelineno-21-10"></a>Run 3: noise = [0.3, 1.9, 0.7, ...]
+</span><span id="__span-21-11"><a href="#__codelineno-21-11" id="__codelineno-21-11" name="__codelineno-21-11"></a>
+</span><span id="__span-21-12"><a href="#__codelineno-21-12" id="__codelineno-21-12" name="__codelineno-21-12"></a>不同的噪声导致不同的采样结果
+</span></code></pre></div>
+<h4 id="_9">如何获得确定性输出？<a class="headerlink" href="#_9" title="Permanent link">¶</a></h4>
+<p><strong>方法 1：使用极低温度</strong>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-22-1"><a href="#__codelineno-22-1" id="__codelineno-22-1" name="__codelineno-22-1"></a><span class="n">temperatures</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">0.01</span><span class="p">])</span>  <span class="c1"># 接近贪婪解码</span>
+</span></code></pre></div></p>
+<p><strong>方法 2：使用贪婪解码（修改 sampler）</strong>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-23-1"><a href="#__codelineno-23-1" id="__codelineno-23-1" name="__codelineno-23-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">greedy_decode</span><span class="p">(</span><span class="n">logits</span><span class="p">):</span>
+</span><span id="__span-23-2"><a href="#__codelineno-23-2" id="__codelineno-23-2" name="__codelineno-23-2"></a>    <span class="k">return</span> <span class="n">logits</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># 直接取最大概率的 token</span>
+</span></code></pre></div></p>
+<p><strong>方法 3：设置随机种子</strong>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-24-1"><a href="#__codelineno-24-1" id="__codelineno-24-1" name="__codelineno-24-1"></a><span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+</span><span id="__span-24-2"><a href="#__codelineno-24-2" id="__codelineno-24-2" name="__codelineno-24-2"></a><span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+</span><span id="__span-24-3"><a href="#__codelineno-24-3" id="__codelineno-24-3" name="__codelineno-24-3"></a>
+</span><span id="__span-24-4"><a href="#__codelineno-24-4" id="__codelineno-24-4" name="__codelineno-24-4"></a><span class="c1"># 现在每次运行都会得到相同的"随机"结果</span>
+</span><span id="__span-24-5"><a href="#__codelineno-24-5" id="__codelineno-24-5" name="__codelineno-24-5"></a><span class="c1"># 因为随机数生成器被重置到相同状态</span>
+</span></code></pre></div></p>
+<h4 id="_10">实际应用中的考虑<a class="headerlink" href="#_10" title="Permanent link">¶</a></h4>
+<table>
+<thead>
+<tr>
+<th>应用</th>
+<th>是否需要确定性</th>
+<th>推荐方案</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>模型测试</strong></td>
+<td>是</td>
+<td>temperature=0.01 或固定随机种子</td>
+</tr>
+<tr>
+<td><strong>产品演示</strong></td>
+<td>是</td>
+<td>固定随机种子</td>
+</tr>
+<tr>
+<td><strong>创意写作</strong></td>
+<td>否</td>
+<td>temperature=0.8-1.0</td>
+</tr>
+<tr>
+<td><strong>对话系统</strong></td>
+<td>否</td>
+<td>temperature=0.7-0.9</td>
+</tr>
+<tr>
+<td><strong>代码生成</strong></td>
+<td>部分</td>
+<td>temperature=0.2-0.5</td>
+</tr>
+</tbody>
+</table>
+<hr/>
+<h2 id="_11">七、性能优化<a class="headerlink" href="#_11" title="Permanent link">¶</a></h2>
+<h3 id="71-torch-compile">7.1 Torch Compile<a class="headerlink" href="#71-torch-compile" title="Permanent link">¶</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-25-1"><a href="#__codelineno-25-1" id="__codelineno-25-1" name="__codelineno-25-1"></a><span class="nd">@torch</span><span class="o">.</span><span class="n">compile</span>
+</span><span id="__span-25-2"><a href="#__codelineno-25-2" id="__codelineno-25-2" name="__codelineno-25-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logits</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">temperatures</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+</span><span id="__span-25-3"><a href="#__codelineno-25-3" id="__codelineno-25-3" name="__codelineno-25-3"></a>    <span class="o">...</span>
+</span></code></pre></div>
+<p><strong>优势</strong>：
+- JIT 编译优化
+- 融合多个操作
+- 减少 Python 开销
+- 加速 20-50%</p>
+<h3 id="72">7.2 原地操作<a class="headerlink" href="#72" title="Permanent link">¶</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-26-1"><a href="#__codelineno-26-1" id="__codelineno-26-1" name="__codelineno-26-1"></a><span class="n">logits</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">.</span><span class="n">div_</span><span class="p">(</span><span class="n">temperatures</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+</span><span id="__span-26-2"><a href="#__codelineno-26-2" id="__codelineno-26-2" name="__codelineno-26-2"></a>                    <span class="err">└─</span> <span class="n">原地除法</span><span class="err">，</span><span class="n">减少内存分配</span>
+</span><span id="__span-26-3"><a href="#__codelineno-26-3" id="__codelineno-26-3" name="__codelineno-26-3"></a>
+</span><span id="__span-26-4"><a href="#__codelineno-26-4" id="__codelineno-26-4" name="__codelineno-26-4"></a><span class="n">probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-26-5"><a href="#__codelineno-26-5" id="__codelineno-26-5" name="__codelineno-26-5"></a>
+</span><span id="__span-26-6"><a href="#__codelineno-26-6" id="__codelineno-26-6" name="__codelineno-26-6"></a><span class="n">sample_tokens</span> <span class="o">=</span> <span class="n">probs</span><span class="o">.</span><span class="n">div_</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>  <span class="c1"># 原地除法</span>
+</span><span id="__span-26-7"><a href="#__codelineno-26-7" id="__codelineno-26-7" name="__codelineno-26-7"></a>                    <span class="err">└─</span> <span class="n">复用</span> <span class="n">probs</span> <span class="n">内存</span>
+</span></code></pre></div>
+<p><strong>优势</strong>：
+- 减少内存分配
+- 降低内存带宽压力
+- 提升缓存效率</p>
+<h3 id="73">7.3 数值稳定性<a class="headerlink" href="#73" title="Permanent link">¶</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-27-1"><a href="#__codelineno-27-1" id="__codelineno-27-1" name="__codelineno-27-1"></a><span class="o">.</span><span class="n">clamp_min_</span><span class="p">(</span><span class="mf">1e-10</span><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>作用</strong>：
+- 防止除零错误
+- 保证数值稳定性
+- 不影响采样结果（概率极小）</p>
+<hr/>
+<h2 id="_12">八、与其他采样方法的对比<a class="headerlink" href="#_12" title="Permanent link">¶</a></h2>
+<h3 id="81">8.1 采样方法对比<a class="headerlink" href="#81" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>公式</th>
+<th>随机性</th>
+<th>速度</th>
+<th>质量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>贪婪解码</strong></td>
+<td><code>argmax(logits)</code></td>
+<td>无</td>
+<td>最快</td>
+<td>一般</td>
+</tr>
+<tr>
+<td><strong>Gumbel-Max</strong></td>
+<td><code>argmax(logits/T + gumbel)</code></td>
+<td>高</td>
+<td>快</td>
+<td>好</td>
+</tr>
+<tr>
+<td><strong>Top-K 采样</strong></td>
+<td><code>multinomial(top_k(logits))</code></td>
+<td>中</td>
+<td>中</td>
+<td>好</td>
+</tr>
+<tr>
+<td><strong>Nucleus 采样</strong></td>
+<td><code>multinomial(top_p(logits))</code></td>
+<td>中</td>
+<td>中</td>
+<td>最好</td>
+</tr>
+</tbody>
+</table>
+<h3 id="82-top-k">8.2 扩展：Top-K 采样<a class="headerlink" href="#82-top-k" title="Permanent link">¶</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-28-1"><a href="#__codelineno-28-1" id="__codelineno-28-1" name="__codelineno-28-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">top_k_sampling</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="mf">0.8</span><span class="p">):</span>
+</span><span id="__span-28-2"><a href="#__codelineno-28-2" id="__codelineno-28-2" name="__codelineno-28-2"></a>    <span class="c1"># 1. 温度缩放</span>
+</span><span id="__span-28-3"><a href="#__codelineno-28-3" id="__codelineno-28-3" name="__codelineno-28-3"></a>    <span class="n">logits</span> <span class="o">=</span> <span class="n">logits</span> <span class="o">/</span> <span class="n">temperature</span>
+</span><span id="__span-28-4"><a href="#__codelineno-28-4" id="__codelineno-28-4" name="__codelineno-28-4"></a>
+</span><span id="__span-28-5"><a href="#__codelineno-28-5" id="__codelineno-28-5" name="__codelineno-28-5"></a>    <span class="c1"># 2. 只保留 top-k 个 logits</span>
+</span><span id="__span-28-6"><a href="#__codelineno-28-6" id="__codelineno-28-6" name="__codelineno-28-6"></a>    <span class="n">indices_to_remove</span> <span class="o">=</span> <span class="n">logits</span> <span class="o">&lt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">k</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="o">...</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+</span><span id="__span-28-7"><a href="#__codelineno-28-7" id="__codelineno-28-7" name="__codelineno-28-7"></a>    <span class="n">logits</span><span class="p">[</span><span class="n">indices_to_remove</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">'-inf'</span><span class="p">)</span>
+</span><span id="__span-28-8"><a href="#__codelineno-28-8" id="__codelineno-28-8" name="__codelineno-28-8"></a>
+</span><span id="__span-28-9"><a href="#__codelineno-28-9" id="__codelineno-28-9" name="__codelineno-28-9"></a>    <span class="c1"># 3. 多项式采样</span>
+</span><span id="__span-28-10"><a href="#__codelineno-28-10" id="__codelineno-28-10" name="__codelineno-28-10"></a>    <span class="n">probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-28-11"><a href="#__codelineno-28-11" id="__codelineno-28-11" name="__codelineno-28-11"></a>    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">multinomial</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">num_samples</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="83-nucleus-top-p">8.3 扩展：Nucleus (Top-P) 采样<a class="headerlink" href="#83-nucleus-top-p" title="Permanent link">¶</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-29-1"><a href="#__codelineno-29-1" id="__codelineno-29-1" name="__codelineno-29-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">nucleus_sampling</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="mf">0.8</span><span class="p">):</span>
+</span><span id="__span-29-2"><a href="#__codelineno-29-2" id="__codelineno-29-2" name="__codelineno-29-2"></a>    <span class="c1"># 1. 温度缩放</span>
+</span><span id="__span-29-3"><a href="#__codelineno-29-3" id="__codelineno-29-3" name="__codelineno-29-3"></a>    <span class="n">logits</span> <span class="o">=</span> <span class="n">logits</span> <span class="o">/</span> <span class="n">temperature</span>
+</span><span id="__span-29-4"><a href="#__codelineno-29-4" id="__codelineno-29-4" name="__codelineno-29-4"></a>
+</span><span id="__span-29-5"><a href="#__codelineno-29-5" id="__codelineno-29-5" name="__codelineno-29-5"></a>    <span class="c1"># 2. 排序并计算累积概率</span>
+</span><span id="__span-29-6"><a href="#__codelineno-29-6" id="__codelineno-29-6" name="__codelineno-29-6"></a>    <span class="n">sorted_logits</span><span class="p">,</span> <span class="n">sorted_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">descending</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-29-7"><a href="#__codelineno-29-7" id="__codelineno-29-7" name="__codelineno-29-7"></a>    <span class="n">cumulative_probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">sorted_logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-29-8"><a href="#__codelineno-29-8" id="__codelineno-29-8" name="__codelineno-29-8"></a>
+</span><span id="__span-29-9"><a href="#__codelineno-29-9" id="__codelineno-29-9" name="__codelineno-29-9"></a>    <span class="c1"># 3. 移除累积概率超过 p 的部分</span>
+</span><span id="__span-29-10"><a href="#__codelineno-29-10" id="__codelineno-29-10" name="__codelineno-29-10"></a>    <span class="n">sorted_indices_to_remove</span> <span class="o">=</span> <span class="n">cumulative_probs</span> <span class="o">&gt;</span> <span class="n">p</span>
+</span><span id="__span-29-11"><a href="#__codelineno-29-11" id="__codelineno-29-11" name="__codelineno-29-11"></a>    <span class="n">sorted_indices_to_remove</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">sorted_indices_to_remove</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+</span><span id="__span-29-12"><a href="#__codelineno-29-12" id="__codelineno-29-12" name="__codelineno-29-12"></a>    <span class="n">sorted_indices_to_remove</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span id="__span-29-13"><a href="#__codelineno-29-13" id="__codelineno-29-13" name="__codelineno-29-13"></a>
+</span><span id="__span-29-14"><a href="#__codelineno-29-14" id="__codelineno-29-14" name="__codelineno-29-14"></a>    <span class="c1"># 4. 还原原始顺序并屏蔽</span>
+</span><span id="__span-29-15"><a href="#__codelineno-29-15" id="__codelineno-29-15" name="__codelineno-29-15"></a>    <span class="n">indices_to_remove</span> <span class="o">=</span> <span class="n">sorted_indices_to_remove</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
+</span><span id="__span-29-16"><a href="#__codelineno-29-16" id="__codelineno-29-16" name="__codelineno-29-16"></a>        <span class="mi">1</span><span class="p">,</span> <span class="n">sorted_indices</span><span class="p">,</span> <span class="n">sorted_indices_to_remove</span>
+</span><span id="__span-29-17"><a href="#__codelineno-29-17" id="__codelineno-29-17" name="__codelineno-29-17"></a>    <span class="p">)</span>
+</span><span id="__span-29-18"><a href="#__codelineno-29-18" id="__codelineno-29-18" name="__codelineno-29-18"></a>    <span class="n">logits</span><span class="p">[</span><span class="n">indices_to_remove</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">'-inf'</span><span class="p">)</span>
+</span><span id="__span-29-19"><a href="#__codelineno-29-19" id="__codelineno-29-19" name="__codelineno-29-19"></a>
+</span><span id="__span-29-20"><a href="#__codelineno-29-20" id="__codelineno-29-20" name="__codelineno-29-20"></a>    <span class="c1"># 5. 多项式采样</span>
+</span><span id="__span-29-21"><a href="#__codelineno-29-21" id="__codelineno-29-21" name="__codelineno-29-21"></a>    <span class="n">probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-29-22"><a href="#__codelineno-29-22" id="__codelineno-29-22" name="__codelineno-29-22"></a>    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">multinomial</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">num_samples</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span></code></pre></div>
+<hr/>
+<h2 id="_13">九、总结<a class="headerlink" href="#_13" title="Permanent link">¶</a></h2>
+<h3 id="91">9.1 核心要点<a class="headerlink" href="#91" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Gumbel-Max 技巧</strong></td>
+<td>高效的 multinomial 采样，避免累积分布计算</td>
+</tr>
+<tr>
+<td><strong>温度参数</strong></td>
+<td>控制分布平滑度，T&gt;1 增加随机性，T&lt;1 减少随机性</td>
+</tr>
+<tr>
+<td><strong>随机性来源</strong></td>
+<td>Gumbel 噪声（指数分布随机数）</td>
+</tr>
+<tr>
+<td><strong>确定性输出</strong></td>
+<td>使用极低温度或固定随机种子</td>
+</tr>
+</tbody>
+</table>
+<h3 id="92">9.2 关键公式<a class="headerlink" href="#92" title="Permanent link">¶</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-30-1"><a href="#__codelineno-30-1" id="__codelineno-30-1" name="__codelineno-30-1"></a><span class="c1"># 温度缩放</span>
+</span><span id="__span-30-2"><a href="#__codelineno-30-2" id="__codelineno-30-2" name="__codelineno-30-2"></a><span class="n">scaled_logits</span> <span class="o">=</span> <span class="n">logits</span> <span class="o">/</span> <span class="n">temperature</span>
+</span><span id="__span-30-3"><a href="#__codelineno-30-3" id="__codelineno-30-3" name="__codelineno-30-3"></a>
+</span><span id="__span-30-4"><a href="#__codelineno-30-4" id="__codelineno-30-4" name="__codelineno-30-4"></a><span class="c1"># Softmax 概率</span>
+</span><span id="__span-30-5"><a href="#__codelineno-30-5" id="__codelineno-30-5" name="__codelineno-30-5"></a><span class="n">probs</span> <span class="o">=</span> <span class="n">softmax</span><span class="p">(</span><span class="n">scaled_logits</span><span class="p">)</span>
+</span><span id="__span-30-6"><a href="#__codelineno-30-6" id="__codelineno-30-6" name="__codelineno-30-6"></a>
+</span><span id="__span-30-7"><a href="#__codelineno-30-7" id="__codelineno-30-7" name="__codelineno-30-7"></a><span class="c1"># Gumbel-Max 采样</span>
+</span><span id="__span-30-8"><a href="#__codelineno-30-8" id="__codelineno-30-8" name="__codelineno-30-8"></a><span class="n">gumbel_noise</span> <span class="o">=</span> <span class="o">-</span><span class="n">log</span><span class="p">(</span><span class="n">exponential</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+</span><span id="__span-30-9"><a href="#__codelineno-30-9" id="__codelineno-30-9" name="__codelineno-30-9"></a><span class="n">sample</span> <span class="o">=</span> <span class="n">argmax</span><span class="p">(</span><span class="n">probs</span> <span class="o">/</span> <span class="n">gumbel_noise</span><span class="p">)</span>
+</span><span id="__span-30-10"><a href="#__codelineno-30-10" id="__codelineno-30-10" name="__codelineno-30-10"></a>      <span class="o">=</span> <span class="n">argmax</span><span class="p">(</span><span class="n">scaled_logits</span> <span class="o">+</span> <span class="n">gumbel_noise</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="93">9.3 使用建议<a class="headerlink" href="#93" title="Permanent link">¶</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-31-1"><a href="#__codelineno-31-1" id="__codelineno-31-1" name="__codelineno-31-1"></a><span class="c1"># 创意写作</span>
+</span><span id="__span-31-2"><a href="#__codelineno-31-2" id="__codelineno-31-2" name="__codelineno-31-2"></a><span class="n">sampler</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">temperatures</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
+</span><span id="__span-31-3"><a href="#__codelineno-31-3" id="__codelineno-31-3" name="__codelineno-31-3"></a>
+</span><span id="__span-31-4"><a href="#__codelineno-31-4" id="__codelineno-31-4" name="__codelineno-31-4"></a><span class="c1"># 事实问答</span>
+</span><span id="__span-31-5"><a href="#__codelineno-31-5" id="__codelineno-31-5" name="__codelineno-31-5"></a><span class="n">sampler</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">temperatures</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)</span>
+</span><span id="__span-31-6"><a href="#__codelineno-31-6" id="__codelineno-31-6" name="__codelineno-31-6"></a>
+</span><span id="__span-31-7"><a href="#__codelineno-31-7" id="__codelineno-31-7" name="__codelineno-31-7"></a><span class="c1"># 代码生成</span>
+</span><span id="__span-31-8"><a href="#__codelineno-31-8" id="__codelineno-31-8" name="__codelineno-31-8"></a><span class="n">sampler</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">temperatures</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+</span><span id="__span-31-9"><a href="#__codelineno-31-9" id="__codelineno-31-9" name="__codelineno-31-9"></a>
+</span><span id="__span-31-10"><a href="#__codelineno-31-10" id="__codelineno-31-10" name="__codelineno-31-10"></a><span class="c1"># 需要确定性输出</span>
+</span><span id="__span-31-11"><a href="#__codelineno-31-11" id="__codelineno-31-11" name="__codelineno-31-11"></a><span class="n">sampler</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">temperatures</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+</span><span id="__span-31-12"><a href="#__codelineno-31-12" id="__codelineno-31-12" name="__codelineno-31-12"></a><span class="c1"># 或设置随机种子</span>
+</span><span id="__span-31-13"><a href="#__codelineno-31-13" id="__codelineno-31-13" name="__codelineno-31-13"></a><span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="94">9.4 与其他模块的关系<a class="headerlink" href="#94" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-32-1"><a href="#__codelineno-32-1" id="__codelineno-32-1" name="__codelineno-32-1"></a>完整推理链：
+</span><span id="__span-32-2"><a href="#__codelineno-32-2" id="__codelineno-32-2" name="__codelineno-32-2"></a>─────────────────────────────────────────────────────────
+</span><span id="__span-32-3"><a href="#__codelineno-32-3" id="__codelineno-32-3" name="__codelineno-32-3"></a>输入 → VocabParallelEmbedding → Qwen3DecoderLayer × N
+</span><span id="__span-32-4"><a href="#__codelineno-32-4" id="__codelineno-32-4" name="__codelineno-32-4"></a>                                    │
+</span><span id="__span-32-5"><a href="#__codelineno-32-5" id="__codelineno-32-5" name="__codelineno-32-5"></a>                                    ▼
+</span><span id="__span-32-6"><a href="#__codelineno-32-6" id="__codelineno-32-6" name="__codelineno-32-6"></a>                              ParallelLMHead
+</span><span id="__span-32-7"><a href="#__codelineno-32-7" id="__codelineno-32-7" name="__codelineno-32-7"></a>                                    │
+</span><span id="__span-32-8"><a href="#__codelineno-32-8" id="__codelineno-32-8" name="__codelineno-32-8"></a>                                    ▼
+</span><span id="__span-32-9"><a href="#__codelineno-32-9" id="__codelineno-32-9" name="__codelineno-32-9"></a>                               logits (rank=0)
+</span><span id="__span-32-10"><a href="#__codelineno-32-10" id="__codelineno-32-10" name="__codelineno-32-10"></a>                                    │
+</span><span id="__span-32-11"><a href="#__codelineno-32-11" id="__codelineno-32-11" name="__codelineno-32-11"></a>                                    ▼
+</span><span id="__span-32-12"><a href="#__codelineno-32-12" id="__codelineno-32-12" name="__codelineno-32-12"></a>                                  Sampler
+</span><span id="__span-32-13"><a href="#__codelineno-32-13" id="__codelineno-32-13" name="__codelineno-32-13"></a>                                    │
+</span><span id="__span-32-14"><a href="#__codelineno-32-14" id="__codelineno-32-14" name="__codelineno-32-14"></a>                                    ▼
+</span><span id="__span-32-15"><a href="#__codelineno-32-15" id="__codelineno-32-15" name="__codelineno-32-15"></a>                              next_token_ids
+</span></code></pre></div>
+<p></p>
+<aside class="md-source-file">
+<span class="md-source-file__fact">
+<span class="md-icon" title="最后更新">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"></path></svg>
+</span>
+<span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年3月19日 17:15:52 UTC"><span class="timeago" datetime="2026-03-19T17:15:52+00:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年3月19日 17:15:52 UTC">2026-03-19</span>
+</span>
+<span class="md-source-file__fact">
+<span class="md-icon" title="创建日期">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"></path></svg>
+</span>
+<span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago" title="2026年3月19日 17:15:52 UTC"><span class="timeago" datetime="2026-03-19T17:15:52+00:00" locale="zh"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="2026年3月19日 17:15:52 UTC">2026-03-19</span>
+</span>
+</aside>
+</article>
+</div>
+<script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+<button class="md-top md-icon" data-md-component="top" hidden="" type="button">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"></path></svg>
+  回到页面顶部
+</button>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+</div>
+<div class="md-social">
+<a class="md-social__link" href="https://github.com/Xjg-0216/nano-vllm" rel="noopener" target="_blank" title="Xjg-0216 on GitHub">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"></path></svg>
+</a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.highlight", "search.share", "search.suggest", "content.code.copy", "content.code.annotate", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+<script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+<script src="../../js/timeago.min.js"></script>
+<script src="../../js/timeago_mkdocs_material.js"></script>
+<script src="../../javascripts/mathjax.js"></script>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</body>
+</html>
